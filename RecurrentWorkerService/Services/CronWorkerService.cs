@@ -1,20 +1,19 @@
-﻿using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using RecurrentWorkerService.Schedules;
 using RecurrentWorkerService.Services.Calculators;
 using RecurrentWorkerService.Workers;
 
 namespace RecurrentWorkerService.Services;
 
-internal class CronWorkerHostedService: BackgroundService
+internal class CronWorkerService : IWorkerService
 {
-	private readonly ILogger<CronWorkerHostedService> _logger;
+	private readonly ILogger<CronWorkerService> _logger;
 	private readonly Func<ICronWorker> _workerFactory;
 	private readonly CronSchedule _schedule;
 	private readonly CronWorkerExecutionDelayCalculator _delayCalculator;
 
-	public CronWorkerHostedService(
-		ILogger<CronWorkerHostedService> logger,
+	public CronWorkerService(
+		ILogger<CronWorkerService> logger,
 		Func<ICronWorker> workerFactory,
 		CronSchedule schedule,
 		CronWorkerExecutionDelayCalculator delayCalculator)
@@ -25,7 +24,7 @@ internal class CronWorkerHostedService: BackgroundService
 		_delayCalculator = delayCalculator;
 	}
 
-	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+	public async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
 		while (!stoppingToken.IsCancellationRequested)
 		{

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Worker">
+﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RecurrentWorkerService.Distributed.RedisPersistence\RecurrentWorkerService.Distributed.RedisPersistence.csproj" />
+    <ProjectReference Include="..\RecurrentWorkerService.Distributed.EtcdPersistence\RecurrentWorkerService.Distributed.EtcdPersistence.csproj" />
     <ProjectReference Include="..\RecurrentWorkerService\RecurrentWorkerService.csproj" />
   </ItemGroup>
 </Project>

@@ -1,26 +1,24 @@
 ﻿using System.Diagnostics;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RecurrentWorkerService.Schedules;
 using RecurrentWorkerService.Services.Calculators;
 using RecurrentWorkerService.Workers;
-using RecurrentWorkerService.Workers.Models;
 
 namespace RecurrentWorkerService.Services;
 
-internal class WorkloadWorkerHostedService: BackgroundService
+internal class RecurrentWorkerService : IWorkerService
 {
-	private readonly ILogger<WorkloadWorkerHostedService> _logger;
-	private readonly Func<IWorkloadWorker> _workerFactory;
-	private readonly WorkloadSchedule _schedule;
-	private readonly WorkloadWorkerExecutionDelayCalculator _delayCalculator;
+	private readonly ILogger<RecurrentWorkerService> _logger;
+	private readonly Func<IRecurrentWorker> _workerFactory;
+	private readonly RecurrentSchedule _schedule;
+	private readonly RecurrentWorkerExecutionDelayCalculator _delayCalculator;
 	private readonly Stopwatch _stopwatch;
 
-	public WorkloadWorkerHostedService(
-		ILogger<WorkloadWorkerHostedService> logger,
-		Func<IWorkloadWorker> workerFactory,
-		WorkloadSchedule schedule,
-		WorkloadWorkerExecutionDelayCalculator delayCalculator)
+	public RecurrentWorkerService(
+		ILogger<RecurrentWorkerService> logger,
+		Func<IRecurrentWorker> workerFactory,
+		RecurrentSchedule schedule,
+		RecurrentWorkerExecutionDelayCalculator delayCalculator)
 	{
 		_logger = logger;
 		_workerFactory = workerFactory;
@@ -29,7 +27,7 @@ internal class WorkloadWorkerHostedService: BackgroundService
 		_stopwatch = new Stopwatch();
 	}
 
-	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+	public async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
 		while (!stoppingToken.IsCancellationRequested)
 		{
@@ -40,12 +38,10 @@ internal class WorkloadWorkerHostedService: BackgroundService
 
 			_stopwatch.Restart();
 			var isError = false;
-			var workload = Workload.Zero;
-			var delay = _schedule.PeriodFrom + _schedule.PeriodTo / 2;
 			try
 			{
 				_logger.LogDebug($"[{worker}] Start");
-				workload = await worker.ExecuteAsync(stoppingToken);
+				await worker.ExecuteAsync(stoppingToken);
 				_logger.LogDebug($"[{worker}] Success");
 			}
 			catch (Exception e)
@@ -54,7 +50,7 @@ internal class WorkloadWorkerHostedService: BackgroundService
 				isError = true;
 			}
 
-			delay = _delayCalculator.Calculate(_schedule, _stopwatch.Elapsed, delay, workload, isError);
+			var delay = _delayCalculator.Calculate(_schedule, _stopwatch.Elapsed, isError);
 			_logger.LogDebug($"[{worker}] Next execution will be after {delay:g} at {DateTimeOffset.UtcNow + delay:O}");
 			await Task.Delay(delay, stoppingToken);
 		}

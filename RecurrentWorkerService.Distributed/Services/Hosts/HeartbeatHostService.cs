@@ -1,17 +1,17 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using RecurrentWorkerService.Distributed.Configuration.Settings;
 using RecurrentWorkerService.Distributed.Persistence;
-using RecurrentWorkerService.Distributed.Services.Settings;
 
-namespace RecurrentWorkerService.Distributed.Services;
+namespace RecurrentWorkerService.Distributed.Services.Hosts;
 
-internal class HeartbeatService : BackgroundService
+internal class HeartbeatHostService : BackgroundService
 {
-	private readonly ILogger<HeartbeatService> _logger;
+	private readonly ILogger<HeartbeatHostService> _logger;
 	private readonly IPersistence _persistence;
 	private readonly HeartbeatSettings _settings;
 
-	public HeartbeatService(ILogger<HeartbeatService> logger, IPersistence persistence, HeartbeatSettings settings)
+	public HeartbeatHostService(ILogger<HeartbeatHostService> logger, IPersistence persistence, HeartbeatSettings settings)
 	{
 		_logger = logger;
 		_persistence = persistence;
@@ -23,7 +23,7 @@ internal class HeartbeatService : BackgroundService
 		while (!stoppingToken.IsCancellationRequested)
 		{
 			_logger.LogDebug("Heartbeat");
-			await _persistence.HeartbeatAsync(_settings.HeartbeatExpirationTimeout);
+			await _persistence.HeartbeatAsync(_settings.HeartbeatExpirationTimeout, stoppingToken);
 			await Task.Delay(_settings.HeartbeatPeriod, stoppingToken);
 		}
 	}

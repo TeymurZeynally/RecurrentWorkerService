@@ -1,14 +1,14 @@
 ﻿namespace RecurrentWorkerService.Distributed.Persistence;
 
-internal interface IPersistence
+public interface IPersistence
 {
-	Task HeartbeatAsync(TimeSpan expiration);
+	Task HeartbeatAsync(TimeSpan expiration, CancellationToken cancellationToken);
 
-	Task<string?> AcquireExecutionLockAsync(string identity, long scheduleIndex, int iterationIndex);
+	Task<string?> AcquireExecutionLockAsync(string identity, CancellationToken cancellationToken);
 
-	Task ReleaseExecutionLockAsync(string lockId);
+	Task ReleaseExecutionLockAsync(string lockId, CancellationToken cancellationToken);
 
-	Task SucceededAsync(string identity, long scheduleIndex, int iterationIndex);
+	Task SucceededAsync(string identity, long scheduleIndex, TimeSpan lifetime, CancellationToken cancellationToken);
 
-	Task<bool> IsSucceededAsync(string identity, long scheduleIndex, int iterationIndex);
+	Task<bool> IsSucceededAsync(string identity, long scheduleIndex, CancellationToken cancellationToken);
 }

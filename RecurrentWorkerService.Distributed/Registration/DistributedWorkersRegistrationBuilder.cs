@@ -5,22 +5,24 @@ using RecurrentWorkerService.Distributed.Persistence;
 using RecurrentWorkerService.Distributed.Schedules;
 using RecurrentWorkerService.Distributed.Services;
 using RecurrentWorkerService.Distributed.Services.Calculators;
+using RecurrentWorkerService.Distributed.Services.Hosts;
+using RecurrentWorkerService.Services;
 using RecurrentWorkerService.Workers;
 
 namespace RecurrentWorkerService.Distributed.Registration;
 
-public class DistributedWorkersRegistrationExtensions
+public class DistributedWorkersRegistrationBuilder
 {
 	private readonly IServiceCollection _services;
 
-	public DistributedWorkersRegistrationExtensions(IServiceCollection services)
+	public DistributedWorkersRegistrationBuilder(IServiceCollection services)
 	{
 		_services = services;
 		_services.AddSingleton<IExecutionDateCalculator, ExecutionDateCalculator>();
-		_services.AddHostedService<HeartbeatService>();
+		_services.AddHostedService<HeartbeatHostService>();
 	}
 
-	public DistributedWorkersRegistrationExtensions AddDistributedRecurrentWorker<TWorker>(
+	public DistributedWorkersRegistrationBuilder AddDistributedRecurrentWorker<TWorker>(
 		string identity,
 		Action<DistributedRecurrentScheduleBuilder> scheduleBuilderAction)
 		where TWorker : class, IRecurrentWorker
@@ -29,8 +31,8 @@ public class DistributedWorkersRegistrationExtensions
 		scheduleBuilderAction(scheduleBuilder);
 
 		_services.AddTransient<TWorker>();
-		_services.AddHostedService(s => new DistributedRecurrentWorkerHostedService(
-			s.GetService<ILogger<DistributedRecurrentWorkerHostedService>>()!,
+		_services.AddTransient<IDistributedWorkerService>(s => new DistributedRecurrentWorkerService(
+			s.GetService<ILogger<DistributedRecurrentWorkerService>>()!,
 			() => s.GetService<TWorker>()!,
 			scheduleBuilder.Build(),
 			s.GetService<IExecutionDateCalculator>()!,
@@ -39,7 +41,7 @@ public class DistributedWorkersRegistrationExtensions
 		return this;
 	}
 
-	public DistributedWorkersRegistrationExtensions AddDistributedRecurrentWorker(
+	public DistributedWorkersRegistrationBuilder AddDistributedRecurrentWorker(
 		string identity,
 		Func<IServiceProvider, IRecurrentWorker> implementationFactory,
 		Action<DistributedRecurrentScheduleBuilder> scheduleBuilderAction)
@@ -47,8 +49,8 @@ public class DistributedWorkersRegistrationExtensions
 		var scheduleBuilder = new DistributedRecurrentScheduleBuilder(new DistributedRecurrentSchedule());
 		scheduleBuilderAction(scheduleBuilder);
 
-		_services.AddHostedService(s => new DistributedRecurrentWorkerHostedService(
-			s.GetService<ILogger<DistributedRecurrentWorkerHostedService>>()!,
+		_services.AddTransient<IDistributedWorkerService>(s => new DistributedRecurrentWorkerService(
+			s.GetService<ILogger<DistributedRecurrentWorkerService>>()!,
 			() => implementationFactory(s),
 			scheduleBuilder.Build(),
 			s.GetService<IExecutionDateCalculator>()!,

@@ -1,9 +1,8 @@
-﻿namespace RecurrentWorkerService.Distributed.Services.Settings
-{
-	internal class HeartbeatSettings
-	{
-		public TimeSpan HeartbeatPeriod { get; init; }
+﻿namespace RecurrentWorkerService.Distributed.Configuration.Settings;
 
-		public TimeSpan HeartbeatExpirationTimeout { get; init; }
-	}
+internal class HeartbeatSettings
+{
+	public TimeSpan HeartbeatPeriod { get; init; }
+
+	public TimeSpan HeartbeatExpirationTimeout { get; init; }
 }

@@ -1,41 +1,71 @@
 using Application;
-using dotnet_etcd;
-using Etcdserverpb;
 using Grpc.Core;
-using RecurrentWorkerService.Distributed.RedisPersistence.Registration;
+using Grpc.Net.Client;
+using Grpc.Net.Client.Balancer;
+using Grpc.Net.Client.Configuration;
+using RecurrentWorkerService.Distributed.EtcdPersistence.Registration;
 using RecurrentWorkerService.Registration;
-using StackExchange.Redis;
 
+var factory = new StaticResolverFactory(addr => new[]
+{
+	new BalancerAddress("10.16.17.139", 12379),
+	new BalancerAddress("10.16.17.139", 22379),
+	new BalancerAddress("10.16.17.139", 32379),
+});
 
-
-
-
-
-EtcdClient client = new EtcdClient("http://localhost:2379");
-
-
-Console.WriteLine(client.GetVal("foo"));
-var result =  client.Lock("mylock1");
-Console.Write("OK" + result);
-Console.ReadKey();
-
-
-
-
-
-IHost host = Host.CreateDefaultBuilder(args)
+await Host.CreateDefaultBuilder(args)
 	.ConfigureServices(services =>
 	{
+		/*
+		services.AddWorkers(w =>
+		{
+			w.AddRecurrentWorker<RecurrentWorker>(s => s.SetPeriod(TimeSpan.FromSeconds(1)));
+			w.AddRecurrentWorker<RecurrentWorker>(s => s.SetPeriod(TimeSpan.FromSeconds(1)));
+			w.AddRecurrentWorker<RecurrentWorker2>(s => s.SetPeriod(TimeSpan.FromSeconds(1)));
+			w.AddRecurrentWorker<RecurrentWorker2>(s => s.SetPeriod(TimeSpan.FromSeconds(1)));
+		});
+
+		*/
+		
 		services.AddDistributedWorkers(
 			"CoolService",
-			ConnectionMultiplexer.Connect("localhost").GetDatabase(),
+			GrpcChannel.ForAddress(
+				"static://",
+				new GrpcChannelOptions
+				{
+					Credentials = ChannelCredentials.Insecure,
+					ServiceProvider = new ServiceCollection().AddSingleton<ResolverFactory>(factory).BuildServiceProvider(),
+					ServiceConfig = new ServiceConfig
+					{
+						MethodConfigs =
+						{
+							new MethodConfig
+							{
+								Names = { MethodName.Default },
+								RetryPolicy = new RetryPolicy
+								{
+									MaxAttempts = 5,
+									InitialBackoff = TimeSpan.FromSeconds(1),
+									MaxBackoff = TimeSpan.FromSeconds(5),
+									BackoffMultiplier = 1.5,
+									RetryableStatusCodes = { StatusCode.Unavailable }
+								}
+							}
+						}
+					}
+				}),
 			w =>
 			{
-				w.AddDistributedRecurrentWorker<RecurrentWorker>(
-					"Worker-1", 
+
+				w.AddDistributedRecurrentWorker<RecurrentWorker2>(
+					"Worker-1",
+					s => s.SetExecutionCount(1).SetPeriod(TimeSpan.FromSeconds(1)));
+
+				w.AddDistributedRecurrentWorker<RecurrentWorker2>(
+					"Worker-2",
 					s => s.SetExecutionCount(1).SetPeriod(TimeSpan.FromSeconds(1)));
 			});
-	})
-	.Build();
 
-await host.RunAsync();
+	})
+	.Build()
+	.RunAsync();
