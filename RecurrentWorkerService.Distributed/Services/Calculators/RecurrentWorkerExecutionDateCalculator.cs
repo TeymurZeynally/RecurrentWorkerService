@@ -1,6 +1,6 @@
 ﻿namespace RecurrentWorkerService.Distributed.Services.Calculators;
 
-internal class ExecutionDateCalculator : IExecutionDateCalculator
+internal class RecurrentWorkerExecutionDateCalculator
 {
 	public (long N, DateTimeOffset ExecutionDate) CalculateCurrentExecutionDate(TimeSpan period, DateTimeOffset now)
 	{

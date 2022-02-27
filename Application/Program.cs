@@ -4,7 +4,6 @@ using Grpc.Net.Client;
 using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Configuration;
 using RecurrentWorkerService.Distributed.EtcdPersistence.Registration;
-using RecurrentWorkerService.Registration;
 
 var factory = new StaticResolverFactory(addr => new[]
 {
@@ -12,6 +11,7 @@ var factory = new StaticResolverFactory(addr => new[]
 	new BalancerAddress("10.16.17.139", 22379),
 	new BalancerAddress("10.16.17.139", 32379),
 });
+
 
 await Host.CreateDefaultBuilder(args)
 	.ConfigureServices(services =>
@@ -56,14 +56,25 @@ await Host.CreateDefaultBuilder(args)
 				}),
 			w =>
 			{
+				/*
+				w.AddDistributedCronWorker<CronWorker>(
+					"CronWorker-1",
+					s => s
+						.SetCronExpression("* * * * *")
+						.SetRetryOnFailDelay(TimeSpan.FromSeconds(1)));
+				*/
 
-				w.AddDistributedRecurrentWorker<RecurrentWorker2>(
-					"Worker-1",
-					s => s.SetExecutionCount(1).SetPeriod(TimeSpan.FromSeconds(1)));
+				/*
+				w.AddDistributedRecurrentWorker<RecurrentWorker>(
+					"RecurrentWorker-1",
+					s => s.SetPeriod(TimeSpan.FromSeconds(20)).SetRetryOnFailDelay(TimeSpan.Zero));
+				*/
 
-				w.AddDistributedRecurrentWorker<RecurrentWorker2>(
-					"Worker-2",
-					s => s.SetExecutionCount(1).SetPeriod(TimeSpan.FromSeconds(1)));
+				w.AddDistributedWorkloadWorker<WorkloadWorker>(
+					"WorkloadWorker-2",
+					s => s.SetRange(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10))
+						.SetStrategies(c => c.Add(0, TimeSpan.FromSeconds(1))
+							.Subtract(200, TimeSpan.FromSeconds(1))));
 			});
 
 	})

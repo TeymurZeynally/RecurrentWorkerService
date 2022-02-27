@@ -1,5 +1,5 @@
-﻿using RecurrentWorkerService.Schedules;
-using RecurrentWorkerService.Services.Calculators.Extensions;
+﻿using RecurrentWorkerService.Extensions;
+using RecurrentWorkerService.Schedules;
 
 namespace RecurrentWorkerService.Services.Calculators;
 

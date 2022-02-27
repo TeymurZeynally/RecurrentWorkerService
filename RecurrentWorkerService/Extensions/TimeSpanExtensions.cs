@@ -1,4 +1,4 @@
-﻿namespace RecurrentWorkerService.Services.Calculators.Extensions;
+﻿namespace RecurrentWorkerService.Extensions;
 
 internal static class TimeSpanExtensions
 {

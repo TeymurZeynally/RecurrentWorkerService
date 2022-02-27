@@ -6,11 +6,24 @@ namespace Application;
 
 internal class WorkloadWorker : IWorkloadWorker
 {
+	private readonly ILogger<WorkloadWorker> _logger
+		;
+
+	public WorkloadWorker(ILogger<WorkloadWorker> logger)
+	{
+		_logger = logger;
+	}
+
+
 	public async Task<Workload> ExecuteAsync(CancellationToken cancellationToken)
 	{
-		Console.WriteLine($"{DateTimeOffset.UtcNow} WorkloadWorker");
-		await Task.CompletedTask;
+		_logger.LogInformation($"{DateTimeOffset.UtcNow} WorkloadWorker Start");
 
-		return Workload.Full;
+		await Task.Delay(TimeSpan.FromSeconds(2));
+		throw new Exception("KEK");
+
+		_logger.LogInformation($"{DateTimeOffset.UtcNow} WorkloadWorker End");
+
+		return Workload.Percent(100);
 	}
 }

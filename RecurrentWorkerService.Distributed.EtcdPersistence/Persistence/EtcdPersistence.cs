@@ -1,8 +1,10 @@
-﻿using Etcdserverpb;
+﻿using System.Text.Json;
+using Etcdserverpb;
 using Google.Protobuf;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using RecurrentWorkerService.Distributed.Persistence;
+using RecurrentWorkerService.Distributed.Persistence.Models;
 using V3Lockpb;
 
 namespace RecurrentWorkerService.Distributed.EtcdPersistence.Persistence;
@@ -40,7 +42,6 @@ internal class EtcdPersistence: IPersistence
 
 		return response.Key.ToStringUtf8();
 	}
-
 
 	public async Task SucceededAsync(string identity, long scheduleIndex, TimeSpan lifetime, CancellationToken cancellationToken)
 	{
@@ -104,6 +105,37 @@ internal class EtcdPersistence: IPersistence
 	{
 		await _lockClient.UnlockAsync(
 			new UnlockRequest { Key = ByteString.CopyFromUtf8(lockId) },
+			cancellationToken: cancellationToken);
+	}
+
+
+	public async Task<WorkloadInfo?> GetCurrentWorkloadAsync(string identity, CancellationToken cancellationToken)
+	{
+		var response = await _kvClient.RangeAsync(
+			new RangeRequest { Key = ByteString.CopyFromUtf8(_serviceId + identity + "WL") },
+			cancellationToken: cancellationToken);
+
+		if (response.Count == 0)
+		{
+			return null;
+		}
+
+		return JsonSerializer.Deserialize<WorkloadInfo>(response.Kvs.Single().Value.ToStringUtf8());
+	}
+
+	public async Task UpdateWorkloadAsync(string identity, WorkloadInfo workloadInfo, TimeSpan lifetime, CancellationToken cancellationToken)
+	{
+		var lease = await _leaseClient.LeaseGrantAsync(
+			new LeaseGrantRequest { TTL = (long)lifetime.TotalSeconds },
+			cancellationToken: cancellationToken);
+
+		await _kvClient.PutAsync(
+			new PutRequest
+			{
+				Key = ByteString.CopyFromUtf8(_serviceId + identity + "WL"),
+				Value = ByteString.CopyFromUtf8(JsonSerializer.Serialize(workloadInfo)),
+				Lease = lease.ID
+			},
 			cancellationToken: cancellationToken);
 	}
 }

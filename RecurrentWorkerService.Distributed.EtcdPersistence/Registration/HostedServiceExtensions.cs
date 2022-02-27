@@ -7,7 +7,6 @@ using RecurrentWorkerService.Distributed.Persistence;
 using RecurrentWorkerService.Distributed.Registration;
 using RecurrentWorkerService.Distributed.Services;
 using RecurrentWorkerService.Distributed.Services.Hosts;
-using RecurrentWorkerService.Services;
 
 namespace RecurrentWorkerService.Distributed.EtcdPersistence.Registration;
 

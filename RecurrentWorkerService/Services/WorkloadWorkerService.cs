@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using RecurrentWorkerService.Extensions;
 using RecurrentWorkerService.Schedules;
 using RecurrentWorkerService.Services.Calculators;
 using RecurrentWorkerService.Workers;
@@ -53,7 +54,7 @@ internal class WorkloadWorkerService : IWorkerService
 				isError = true;
 			}
 
-			delay = _delayCalculator.Calculate(_schedule, _stopwatch.Elapsed, delay, workload, isError);
+			delay = TimeSpanExtensions.Max(_delayCalculator.Calculate(_schedule, delay, workload, isError) - _stopwatch.Elapsed, TimeSpan.Zero);
 			_logger.LogDebug($"[{worker}] Next execution will be after {delay:g} at {DateTimeOffset.UtcNow + delay:O}");
 			await Task.Delay(delay, stoppingToken);
 		}

@@ -4,9 +4,13 @@ namespace Application;
 
 internal class CronWorker : ICronWorker
 {
-	public Task ExecuteAsync(CancellationToken cancellationToken)
+	public async Task ExecuteAsync(CancellationToken cancellationToken)
 	{
 		Console.WriteLine($"{DateTimeOffset.UtcNow} CronWorker");
-		return Task.CompletedTask;
+
+		await Task.Delay(TimeSpan.FromSeconds(0));
+		throw new Exception("KEEK");
+
+		Console.WriteLine($"{DateTimeOffset.UtcNow} RecurrentWorker End");
 	}
 }

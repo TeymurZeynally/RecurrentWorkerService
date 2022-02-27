@@ -7,20 +7,20 @@ using RecurrentWorkerService.Workers;
 
 namespace RecurrentWorkerService.Distributed.Services;
 
-internal class DistributedRecurrentWorkerService : IDistributedWorkerService
+internal class DistributedCronWorkerService : IDistributedWorkerService
 {
-	private readonly ILogger<DistributedRecurrentWorkerService> _logger;
-	private readonly Func<IRecurrentWorker> _workerFactory;
-	private readonly RecurrentWorkerExecutionDateCalculator _executionDateCalculator;
+	private readonly ILogger<DistributedCronWorkerService> _logger;
+	private readonly Func<ICronWorker> _workerFactory;
+	private readonly CronWorkerExecutionDateCalculator _executionDateCalculator;
 	private readonly IPersistence _persistence;
-	private readonly RecurrentSchedule _schedule;
+	private readonly CronSchedule _schedule;
 	private readonly string _identity;
 
-	public DistributedRecurrentWorkerService(
-		ILogger<DistributedRecurrentWorkerService> logger,
-		Func<IRecurrentWorker> workerFactory,
-		RecurrentSchedule schedule,
-		RecurrentWorkerExecutionDateCalculator executionDateCalculator,
+	public DistributedCronWorkerService(
+		ILogger<DistributedCronWorkerService> logger,
+		Func<ICronWorker> workerFactory,
+		CronSchedule schedule,
+		CronWorkerExecutionDateCalculator executionDateCalculator,
 		IPersistence persistence,
 		string identity)
 	{
@@ -34,28 +34,33 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 
 	public async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
+		var currentN = long.MinValue;
+		var retryLimit = DateTimeOffset.UtcNow;
+		var retryExecution = false;
+
 		while (!stoppingToken.IsCancellationRequested)
 		{
 			try
 			{
 				using var _ = _logger.BeginScope(_identity);
 
-				_logger.LogDebug("Waiting for lock...");
+				if (!retryExecution || retryLimit < DateTimeOffset.UtcNow)
+				{
+					var (nextN, nextExecutionDate) = _executionDateCalculator.CalculateNextExecutionDate(_schedule.Expression, DateTimeOffset.UtcNow);
+					var delay = TimeSpanExtensions.Max(TimeSpan.Zero, nextExecutionDate - DateTimeOffset.UtcNow);
+					_logger.LogDebug($"Next execution will be after {delay:g} at {DateTimeOffset.UtcNow + delay:O}");
+					await Task.Delay(delay, stoppingToken);
+					currentN = nextN;
+					retryLimit = _executionDateCalculator.CalculateNextExecutionDate(_schedule.Expression, DateTimeOffset.UtcNow).ExecutionDate;
+				}
+
+				_logger.LogDebug($"Waiting for lock for...");
 				var acquiredLock = await _persistence.AcquireExecutionLockAsync(_identity, stoppingToken);
 				if (string.IsNullOrEmpty(acquiredLock)) continue;
 
-				_logger.LogDebug("Lock acquired");
-
-				var (nextN, nextExecutionDate) = _executionDateCalculator.CalculateNextExecutionDate(_schedule.Period, DateTimeOffset.UtcNow);
-				var delay = TimeSpan.Zero;
-
 				try
 				{
-					var retryExecution = await ExecuteIteration(nextN - 1, nextExecutionDate, stoppingToken);
-					if (!retryExecution)
-					{
-						delay = TimeSpanExtensions.Max(TimeSpan.Zero, nextExecutionDate - DateTimeOffset.UtcNow);
-					}
+					retryExecution = await ExecuteIteration(currentN, retryLimit, stoppingToken);
 				}
 				finally
 				{
@@ -63,9 +68,6 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 					await _persistence.ReleaseExecutionLockAsync(acquiredLock, stoppingToken);
 					_logger.LogDebug("Acquired lock released");
 				}
-
-				_logger.LogDebug($"Next execution will be after {delay:g} at {DateTimeOffset.UtcNow + delay:O}");
-				await Task.Delay(delay, stoppingToken);
 			}
 			catch (Exception e)
 			{
@@ -99,7 +101,6 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 
 		return false;
 	}
-
 
 	private async Task<bool> ExecuteWorker(CancellationToken stoppingToken)
 	{

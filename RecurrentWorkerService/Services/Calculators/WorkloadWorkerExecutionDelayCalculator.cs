@@ -1,23 +1,23 @@
-﻿using RecurrentWorkerService.Schedules;
+﻿using RecurrentWorkerService.Extensions;
+using RecurrentWorkerService.Schedules;
 using RecurrentWorkerService.Schedules.WorkloadScheduleModels;
-using RecurrentWorkerService.Services.Calculators.Extensions;
 using RecurrentWorkerService.Workers.Models;
 
 namespace RecurrentWorkerService.Services.Calculators;
 
 internal class WorkloadWorkerExecutionDelayCalculator
 {
-	public TimeSpan Calculate(WorkloadSchedule schedule, TimeSpan elapsed, TimeSpan lastDelay, Workload workload, bool isError)
+	public TimeSpan Calculate(WorkloadSchedule schedule, TimeSpan lastDelay, Workload workload, bool isError)
 	{
 		if (isError && schedule.RetryOnFailDelay != null)
 		{
 			return schedule.RetryOnFailDelay.Value;
 		}
 
-		var strategy = schedule.Strategies.FirstOrDefault(x => x.Workload >= workload);
+		var strategy = schedule.Strategies.OrderBy(x => x.Workload).LastOrDefault(x => x.Workload <= workload);
 		if (strategy == null)
 		{
-			return TimeSpanExtensions.Max(lastDelay - elapsed, TimeSpan.Zero);
+			return TimeSpanExtensions.Max(lastDelay, schedule.PeriodFrom);
 		}
 
 		var computedDelay = strategy.Action switch
@@ -33,6 +33,6 @@ internal class WorkloadWorkerExecutionDelayCalculator
 		if (computedDelay > schedule.PeriodTo) computedDelay = schedule.PeriodTo;
 		if (computedDelay < schedule.PeriodFrom) computedDelay = schedule.PeriodFrom;
 
-		return TimeSpanExtensions.Max(computedDelay - elapsed, TimeSpan.Zero);
+		return TimeSpanExtensions.Max(computedDelay, TimeSpan.Zero);
 	}
 }

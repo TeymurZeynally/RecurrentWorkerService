@@ -8,7 +8,8 @@ internal class RecurrentWorker : IRecurrentWorker
 	{
 		Console.WriteLine($"{DateTimeOffset.UtcNow} RecurrentWorker Start");
 
-		await Task.Delay(TimeSpan.FromSeconds(3));
+		await Task.Delay(TimeSpan.FromSeconds(0));
+		throw new Exception("KEEK");
 
 		Console.WriteLine($"{DateTimeOffset.UtcNow} RecurrentWorker End");
 	}
