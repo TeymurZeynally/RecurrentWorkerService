@@ -1,13 +1,10 @@
-﻿using RecurrentWorkerService.Distributed.Prioritization.Models;
+﻿namespace RecurrentWorkerService.Distributed.Prioritization.Providers;
 
-namespace RecurrentWorkerService.Distributed.Prioritization.Providers
+internal interface IPriorityProvider
 {
-	internal interface IPriorityProvider
-	{
-		Priority[] GetPrioritiesAsc(string identity);
+	byte[] GetPrioritiesAsc(string identity);
 
-		Priority GetPriority(string identity);
+	byte GetPriority(string identity);
 
-		void UpdatePriorityInformation((string Identity, long NodeId, byte Priority)[] priorities);
-	}
+	void UpdatePriorityInformation((string Identity, long NodeId, byte Priority)[] priorities);
 }

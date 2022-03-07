@@ -31,7 +31,7 @@ internal class PriorityManager : IPriorityManager
 
 		Console.ForegroundColor = ConsoleColor.Cyan;
 		Console.WriteLine("[||||||||||||||||||||||||||||||||||]");
-		Console.WriteLine($"PRIORITIES: {string.Join(' ', priorities.Select(x => x.Value))}  PRIORITY: {priority.Value} ORDER: {order}");
+		Console.WriteLine($"PRIORITIES: [{string.Join(' ', priorities)}]  PRIORITY: {priority} ORDER: {order}");
 		Console.WriteLine("[||||||||||||||||||||||||||||||||||]");
 		Console.ResetColor();
 

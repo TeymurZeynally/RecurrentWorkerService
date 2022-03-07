@@ -71,7 +71,7 @@ await Host.CreateDefaultBuilder(args)
 				
 				w.AddDistributedRecurrentWorker<RecurrentWorker>(
 				    "RecurrentWorker-1",
-				    s => s.SetPeriod(TimeSpan.FromSeconds(20)).SetRetryOnFailDelay(TimeSpan.Zero));
+				    s => s.SetPeriod(TimeSpan.FromSeconds(5)).SetRetryOnFailDelay(TimeSpan.Zero));
 				
 
 				/*

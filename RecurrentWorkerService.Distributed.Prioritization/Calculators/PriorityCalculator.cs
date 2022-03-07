@@ -1,11 +1,9 @@
-﻿using RecurrentWorkerService.Distributed.Prioritization.Models;
-
-namespace RecurrentWorkerService.Distributed.Prioritization.Calculators;
+﻿namespace RecurrentWorkerService.Distributed.Prioritization.Calculators;
 
 internal class PriorityCalculator : IPriorityCalculator
 {
-	public Task<Priority> GetPriorityAsync(DateTimeOffset[] failuresHistory, CancellationToken cancellationToken)
+	public Task<byte> GetPriorityAsync(DateTimeOffset[] failuresHistory, CancellationToken cancellationToken)
 	{
-		return Task.FromResult((Priority)Convert.ToByte(Math.Min(byte.MaxValue, failuresHistory.Length)));
+		return Task.FromResult(Convert.ToByte(Math.Min(byte.MaxValue, failuresHistory.Length)));
 	}
 }
