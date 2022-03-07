@@ -1,7 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using RecurrentWorkerService.Configuration.Builders;
-using RecurrentWorkerService.Distributed.Persistence;
+using RecurrentWorkerService.Distributed.Interfaces.Persistence;
+using RecurrentWorkerService.Distributed.Interfaces.Prioritization;
 using RecurrentWorkerService.Distributed.Services;
 using RecurrentWorkerService.Distributed.Services.Calculators;
 using RecurrentWorkerService.Distributed.Services.Hosts;
@@ -41,6 +42,7 @@ public class DistributedWorkersRegistrationBuilder
 			scheduleBuilder.Build(),
 			s.GetService<RecurrentWorkerExecutionDateCalculator>()!,
 			s.GetService<IPersistence>()!,
+			s.GetService<IPriorityManager>()!,
 			identity));
 		return this;
 	}
@@ -59,6 +61,7 @@ public class DistributedWorkersRegistrationBuilder
 			scheduleBuilder.Build(),
 			s.GetService<RecurrentWorkerExecutionDateCalculator>()!,
 			s.GetService<IPersistence>()!,
+			s.GetService<IPriorityManager>()!,
 			identity));
 		return this;
 	}
@@ -78,6 +81,7 @@ public class DistributedWorkersRegistrationBuilder
 			scheduleBuilder.Build(),
 			s.GetService<CronWorkerExecutionDateCalculator>()!,
 			s.GetService<IPersistence>()!,
+			s.GetService<IPriorityManager>()!,
 			identity));
 		return this;
 	}
@@ -96,6 +100,7 @@ public class DistributedWorkersRegistrationBuilder
 			scheduleBuilder.Build(),
 			s.GetService<CronWorkerExecutionDateCalculator>()!,
 			s.GetService<IPersistence>()!,
+			s.GetService<IPriorityManager>()!,
 			identity));
 		return this;
 	}
@@ -115,6 +120,7 @@ public class DistributedWorkersRegistrationBuilder
 			scheduleBuilder.Build(),
 			s.GetService<WorkloadWorkerExecutionDelayCalculator>()!,
 			s.GetService<IPersistence>()!,
+			s.GetService<IPriorityManager>()!,
 			identity));
 		return this;
 	}
@@ -133,6 +139,7 @@ public class DistributedWorkersRegistrationBuilder
 			scheduleBuilder.Build(),
 			s.GetService<WorkloadWorkerExecutionDelayCalculator>()!,
 			s.GetService<IPersistence>()!,
+			s.GetService<IPriorityManager>()!,
 			identity));
 		return this;
 	}

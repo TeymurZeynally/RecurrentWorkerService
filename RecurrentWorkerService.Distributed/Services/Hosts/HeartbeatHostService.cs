@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RecurrentWorkerService.Distributed.Configuration.Settings;
-using RecurrentWorkerService.Distributed.Persistence;
+using RecurrentWorkerService.Distributed.Interfaces.Persistence;
 
 namespace RecurrentWorkerService.Distributed.Services.Hosts;
 

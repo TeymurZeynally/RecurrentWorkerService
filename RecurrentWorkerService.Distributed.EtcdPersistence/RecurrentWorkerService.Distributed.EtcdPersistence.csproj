@@ -6,6 +6,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+	<ItemGroup>
+		<InternalsVisibleTo Include="RecurrentWorkerService.Distributed.EtcdPersistence.Tests" />
+	</ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.19.2" />
     <PackageReference Include="Grpc.Net.Client" Version="2.42.0-pre1" />

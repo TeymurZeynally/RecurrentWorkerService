@@ -7,12 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="$(AssemblyName).EtcdPersistence" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\RecurrentWorkerService.Distributed.Interfaces\RecurrentWorkerService.Distributed.Interfaces.csproj" />
-    <ProjectReference Include="..\RecurrentWorkerService\RecurrentWorkerService.csproj" />
+    <ProjectReference Include="..\RecurrentWorkerService.Distributed\RecurrentWorkerService.Distributed.csproj" />
   </ItemGroup>
 
 </Project>

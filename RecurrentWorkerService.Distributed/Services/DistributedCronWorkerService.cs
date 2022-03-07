@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
-using RecurrentWorkerService.Distributed.Persistence;
+using RecurrentWorkerService.Distributed.Interfaces.Persistence;
+using RecurrentWorkerService.Distributed.Interfaces.Prioritization;
 using RecurrentWorkerService.Distributed.Services.Calculators;
 using RecurrentWorkerService.Extensions;
 using RecurrentWorkerService.Schedules;
@@ -14,7 +15,9 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 	private readonly CronWorkerExecutionDateCalculator _executionDateCalculator;
 	private readonly IPersistence _persistence;
 	private readonly CronSchedule _schedule;
+	private readonly IPriorityManager _priorityManager;
 	private readonly string _identity;
+	private long _revision;
 
 	public DistributedCronWorkerService(
 		ILogger<DistributedCronWorkerService> logger,
@@ -22,6 +25,7 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 		CronSchedule schedule,
 		CronWorkerExecutionDateCalculator executionDateCalculator,
 		IPersistence persistence,
+		IPriorityManager priorityManager,
 		string identity)
 	{
 		_logger = logger;
@@ -29,6 +33,7 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 		_executionDateCalculator = executionDateCalculator;
 		_persistence = persistence;
 		_schedule = schedule;
+		_priorityManager = priorityManager;
 		_identity = identity;
 	}
 
@@ -53,6 +58,9 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 					currentN = nextN;
 					retryLimit = _executionDateCalculator.CalculateNextExecutionDate(_schedule.Expression, DateTimeOffset.UtcNow).ExecutionDate;
 				}
+
+				_logger.LogDebug($"Waiting for execution order...");
+				await _priorityManager.WaitForExecutionOrderAsync(_identity, _revision, GetPersistentItemsLifetime(retryLimit), stoppingToken);
 
 				_logger.LogDebug($"Waiting for lock for...");
 				var acquiredLock = await _persistence.AcquireExecutionLockAsync(_identity, stoppingToken);
@@ -79,9 +87,12 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 	private async Task<bool> ExecuteIteration(long currentN, DateTimeOffset nextExecutionDate, CancellationToken stoppingToken)
 	{
 		_logger.LogDebug($"Checking is {currentN} succeeded...");
-		if (await _persistence.IsSucceededAsync(_identity, currentN, stoppingToken))
+		var succeededResult = await _persistence.IsSucceededAsync(_identity, currentN, stoppingToken);
+
+		if (succeededResult.Data)
 		{
 			_logger.LogDebug($"Iteration {currentN} is succeeded...");
+			_revision = succeededResult.Revision;
 			return false;
 		}
 
@@ -90,7 +101,8 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 
 		if (succeeded)
 		{
-			await _persistence.SucceededAsync(_identity, currentN, (DateTimeOffset.UtcNow - nextExecutionDate) * 3, stoppingToken);
+			var result =  await _persistence.SucceededAsync(_identity, currentN, GetPersistentItemsLifetime(nextExecutionDate), stoppingToken);
+			_revision = result.Revision;
 			_logger.LogDebug($"Success key for {currentN} created");
 		}
 		else if (_schedule.RetryOnFailDelay.HasValue)
@@ -112,12 +124,17 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 			_logger.LogDebug($"[{worker}] Start");
 			await worker.ExecuteAsync(stoppingToken);
 			_logger.LogDebug($"[{worker}] Success");
+			await _priorityManager.ResetPriorityAsync(_identity, stoppingToken);
+
 			return true;
 		}
 		catch (Exception e)
 		{
 			_logger.LogError($"[{worker}] Fail: {e}");
+			await _priorityManager.DecreasePriorityAsync(_identity, stoppingToken);
 			return false;
 		}
 	}
+
+	private TimeSpan GetPersistentItemsLifetime(DateTimeOffset nextExecutionDate) => (DateTimeOffset.UtcNow - nextExecutionDate) * 3;
 }

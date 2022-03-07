@@ -1,7 +1,8 @@
 ﻿using System.Diagnostics;
 using Microsoft.Extensions.Logging;
-using RecurrentWorkerService.Distributed.Persistence;
-using RecurrentWorkerService.Distributed.Persistence.Models;
+using RecurrentWorkerService.Distributed.Interfaces.Persistence;
+using RecurrentWorkerService.Distributed.Interfaces.Persistence.Models;
+using RecurrentWorkerService.Distributed.Interfaces.Prioritization;
 using RecurrentWorkerService.Extensions;
 using RecurrentWorkerService.Schedules;
 using RecurrentWorkerService.Services.Calculators;
@@ -17,7 +18,9 @@ internal class DistributedWorkloadWorkerService : IDistributedWorkerService
 	private readonly WorkloadWorkerExecutionDelayCalculator _executionDelayCalculator;
 	private readonly IPersistence _persistence;
 	private readonly WorkloadSchedule _schedule;
+	private readonly IPriorityManager _priorityManager;
 	private readonly string _identity;
+	private long _revision;
 
 	public DistributedWorkloadWorkerService(
 		ILogger<DistributedWorkloadWorkerService> logger,
@@ -25,6 +28,7 @@ internal class DistributedWorkloadWorkerService : IDistributedWorkerService
 		WorkloadSchedule schedule,
 		WorkloadWorkerExecutionDelayCalculator executionDelayCalculator,
 		IPersistence persistence,
+		IPriorityManager priorityManager,
 		string identity)
 	{
 		_logger = logger;
@@ -32,6 +36,7 @@ internal class DistributedWorkloadWorkerService : IDistributedWorkerService
 		_executionDelayCalculator = executionDelayCalculator;
 		_persistence = persistence;
 		_schedule = schedule;
+		_priorityManager = priorityManager;
 		_identity = identity;
 	}
 
@@ -42,6 +47,9 @@ internal class DistributedWorkloadWorkerService : IDistributedWorkerService
 			try
 			{
 				using var _ = _logger.BeginScope(_identity);
+
+				_logger.LogDebug($"Waiting for execution order...");
+				await _priorityManager.WaitForExecutionOrderAsync(_identity, _revision, _schedule.PeriodTo * 3, stoppingToken);
 
 				_logger.LogDebug("Waiting for lock...");
 				var acquiredLock = await _persistence.AcquireExecutionLockAsync(_identity, stoppingToken);
@@ -54,7 +62,9 @@ internal class DistributedWorkloadWorkerService : IDistributedWorkerService
 				try
 				{
 					_logger.LogDebug("Retrieving current workload info...");
-					var workloadInfo = await _persistence.GetCurrentWorkloadAsync(_identity, stoppingToken);
+					var currentWorkloadResponse = await _persistence.GetCurrentWorkloadAsync(_identity, stoppingToken);
+					var workloadInfo = currentWorkloadResponse?.Data;
+					_revision = currentWorkloadResponse?.Revision ?? _revision;
 
 					if (workloadInfo != null)
 					{
@@ -87,7 +97,8 @@ internal class DistributedWorkloadWorkerService : IDistributedWorkerService
 						};
 
 						_logger.LogDebug("Updating workload info...");
-						await _persistence.UpdateWorkloadAsync(_identity, workloadInfo, TimeSpan.FromDays(60), stoppingToken);
+						var response = await _persistence.UpdateWorkloadAsync(_identity, workloadInfo, TimeSpan.FromDays(60), stoppingToken);
+						_revision = response.Revision;
 
 						delay = _executionDelayCalculator.Calculate(_schedule, workloadInfo.LastDelay, workloadInfo.Workload, workloadInfo.IsError);
 						delay = TimeSpanExtensions.Max(delay - workloadInfo.Elapsed, TimeSpan.Zero);
@@ -120,11 +131,13 @@ internal class DistributedWorkloadWorkerService : IDistributedWorkerService
 			_logger.LogDebug($"[{worker}] Start");
 			var workload = await worker.ExecuteAsync(stoppingToken);
 			_logger.LogDebug($"[{worker}] Success with workload {workload}");
+			await _priorityManager.ResetPriorityAsync(_identity, stoppingToken);
 			return workload;
 		}
 		catch (Exception e)
 		{
 			_logger.LogError($"[{worker}] Fail: {e}");
+			await _priorityManager.DecreasePriorityAsync(_identity, stoppingToken);
 			return null;
 		}
 	}
