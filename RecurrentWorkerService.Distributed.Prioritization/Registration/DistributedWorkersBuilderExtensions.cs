@@ -21,7 +21,6 @@ public static class DistributedWorkersBuilderExtensions
 
 		builder.Services.AddHostedService(r => new PriorityService(
 			r.GetService<IPersistence>()!,
-			r.GetService<IRecurrentExecutionDelayCalculator>()!,
 			r.GetService<IPriorityProvider>()!,
 			r.GetService<ILogger<PriorityService>>()!));
 

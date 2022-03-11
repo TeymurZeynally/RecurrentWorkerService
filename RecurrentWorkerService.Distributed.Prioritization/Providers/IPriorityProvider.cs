@@ -1,4 +1,6 @@
-﻿namespace RecurrentWorkerService.Distributed.Prioritization.Providers;
+﻿using RecurrentWorkerService.Distributed.Interfaces.Persistence.Models;
+
+namespace RecurrentWorkerService.Distributed.Prioritization.Providers;
 
 internal interface IPriorityProvider
 {
@@ -6,5 +8,7 @@ internal interface IPriorityProvider
 
 	byte GetPriority(string identity);
 
-	void UpdatePriorityInformation((string Identity, long NodeId, byte Priority)[] priorities);
+	void UpdatePriorityInformation(PriorityEvent priorityEvent);
+
+	void Reset();
 }

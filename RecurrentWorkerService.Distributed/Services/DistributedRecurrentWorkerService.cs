@@ -39,6 +39,8 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 
 	public async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
+		await _priorityManager.ResetPriorityAsync(_identity, stoppingToken);
+
 		while (!stoppingToken.IsCancellationRequested)
 		{
 			try

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
@@ -54,7 +55,7 @@ public class UnitTest1
 				}
 			});
 
-		_persistence = new Persistence.EtcdPersistence(new NullLogger<Persistence.EtcdPersistence>(), channel, "test-service", 1500);
+		_persistence = new Persistence.EtcdPersistence(new NullLogger<Persistence.EtcdPersistence>(), channel, "test-service", 1501);
 	}
 
 
@@ -62,30 +63,26 @@ public class UnitTest1
 	[TestMethod]
 	public async Task TestMethod1()
 	{
-		var cts = new CancellationTokenSource();
+		var task = Task.Run(async () =>
+		{
+			try
+			{
+				await foreach (var update in _persistence.WatchPriorityUpdates(CancellationToken.None))
+				{
+					Debug.Print($"Received priority update {update.NodeId} {update.Identity} {(update.Priority.HasValue ? update.Priority.Value.ToString() : "NO")}");
+				}
+			}
+			catch (Exception e)
+			{
+			}
+		});
 
-		var identity = "IDDD";
-
-		var result = await _persistence.SucceededAsync(identity, 1, TimeSpan.FromDays(401), cts.Token);
-
-		await _persistence.WaitForOrderAsync(5, identity, result.Revision, cts.Token);
+		var rand = new Random();
+		await _persistence.HeartbeatAsync(TimeSpan.FromSeconds(10), CancellationToken.None);
+		await _persistence.UpdatePriorityAsync("ID", (byte)rand.Next(byte.MinValue, byte.MaxValue), CancellationToken.None);
 
 
-		result = await _persistence.SucceededAsync(identity, 2, TimeSpan.FromDays(401), cts.Token);
 
-
-		await _persistence.WaitForOrderAsync(5, identity, result.Revision, cts.Token);
-
-
-		//
-		//await _persistence.HeartbeatAsync(TimeSpan.FromSeconds(10), cts.Token);
-		//await _persistence.AcquireExecutionLockAsync("2", cts.Token);
-
-		//
-		
-		var revision = await _persistence.UpdateWorkloadAsync("adasd", new WorkloadInfo(), TimeSpan.FromDays(040), cts.Token);
-	   await _persistence.GetCurrentWorkloadAsync("adasd", CancellationToken.None);
-
-		string.GetHashCode("");
+		await Task.WhenAny(task);
 	}
 }

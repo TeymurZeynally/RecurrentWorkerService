@@ -1,4 +1,5 @@
 ﻿
+using Application.Helpers;
 using RecurrentWorkerService.Workers;
 using RecurrentWorkerService.Workers.Models;
 
@@ -19,8 +20,17 @@ internal class WorkloadWorker : IWorkloadWorker
 	{
 		_logger.LogInformation($"{DateTimeOffset.UtcNow} WorkloadWorker Start");
 
-		await Task.Delay(TimeSpan.FromSeconds(2));
-		throw new Exception("KEK");
+		if (!FailHelper.IsFail())
+		{
+			await Task.CompletedTask;
+			throw new Exception("FAIL");
+		}
+		Console.WriteLine("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+		Console.WriteLine("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+		Console.WriteLine("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+		Console.WriteLine("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+		Console.WriteLine("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+
 
 		_logger.LogInformation($"{DateTimeOffset.UtcNow} WorkloadWorker End");
 

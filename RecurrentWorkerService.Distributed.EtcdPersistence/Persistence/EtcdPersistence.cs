@@ -1,10 +1,13 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Etcdserverpb;
 using Google.Protobuf;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
+using Mvccpb;
 using RecurrentWorkerService.Distributed.Interfaces.Persistence;
 using RecurrentWorkerService.Distributed.Interfaces.Persistence.Models;
 using V3Lockpb;
@@ -25,11 +28,7 @@ internal class EtcdPersistence: IPersistence
 	}
 	public async Task<string?> AcquireExecutionLockAsync(string identity, CancellationToken cancellationToken)
 	{
-		if (!_serviceLeaseCreated)
-		{
-			await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
-			return null;
-		}
+		await WaitForLeaseAsync();
 
 		var response = await _lockClient.LockAsync(
 			new LockRequest { Lease = _nodeId, Name = ByteString.CopyFromUtf8(GetKeyForExecutionLock(identity)) },
@@ -135,6 +134,7 @@ internal class EtcdPersistence: IPersistence
 
 	public async Task UpdatePriorityAsync(string identity, byte priority, CancellationToken cancellationToken)
 	{
+		await WaitForLeaseAsync();
 		await _kvClient.PutAsync(new PutRequest
 			{
 				Lease = _nodeId,
@@ -144,27 +144,46 @@ internal class EtcdPersistence: IPersistence
 			cancellationToken: cancellationToken);
 	}
 
-	public async Task<(string Identity, long NodeId, byte Priority)[]> GetAllPrioritiesAsync(CancellationToken cancellationToken)
+	public async IAsyncEnumerable<PriorityEvent> WatchPriorityUpdates([EnumeratorCancellation]CancellationToken cancellationToken)
 	{
-		var iterationPrioritySearchKey = GetSearchKeyForIterationPriority();
-
-		var response = await _kvClient.RangeAsync(
-			new RangeRequest
-			{
-				Key = ByteString.CopyFromUtf8(iterationPrioritySearchKey),
-				RangeEnd = ByteString.CopyFromUtf8(GetRangeEnd(iterationPrioritySearchKey))
-			},
-			cancellationToken: cancellationToken);
-
-		return response.Kvs.Select(kv =>
+		PriorityEvent ConvertToPriorityEvent(KeyValue kv)
 		{
 			var keyMatch = _priorityKeyRegex.Match(kv.Key.ToStringUtf8());
 			var identity = keyMatch.Groups["identity"].Value;
 			var node = Convert.ToInt64(keyMatch.Groups["nodeId"].Value);
-			var priority = kv.Value.ToByteArray().Single();
+			var priority = kv.Value.IsEmpty ? default(byte?) : kv.Value.ToByteArray().Single();
 
-			return (identity, node, priority);
-		}).ToArray();
+			return new PriorityEvent { Identity = identity, NodeId = node, Priority = priority };
+		};
+
+		var iterationPrioritySearchKey = GetSearchKeyForIterationPriority();
+		var key = ByteString.CopyFromUtf8(iterationPrioritySearchKey);
+		var rangeEnd = ByteString.CopyFromUtf8(GetRangeEnd(iterationPrioritySearchKey));
+
+		var range = await _kvClient.RangeAsync(new RangeRequest { Key = key, RangeEnd = rangeEnd }, cancellationToken: cancellationToken);
+
+		foreach (var kv in range.Kvs)
+		{
+			Debug.Print("1");
+			yield return ConvertToPriorityEvent(kv);
+		}
+
+		using var watchStream = _watchClient.Watch(cancellationToken: cancellationToken);
+		await watchStream.RequestStream.WriteAsync(
+			new WatchRequest 
+			{
+				CreateRequest = new WatchCreateRequest { Key = key, RangeEnd = rangeEnd, StartRevision = range.Header.Revision + 1 },
+			});
+		await watchStream.RequestStream.CompleteAsync();
+
+		while (await watchStream.ResponseStream.MoveNext(cancellationToken))
+		{
+			foreach (var @event in watchStream.ResponseStream.Current.Events)
+			{
+				Debug.Print("2");
+				yield return ConvertToPriorityEvent(@event.Kv);
+			}
+		}
 	}
 
 	public async Task WaitForOrderAsync(int order, string identity, long revisionStart, CancellationToken cancellationToken)
@@ -198,6 +217,21 @@ internal class EtcdPersistence: IPersistence
 		}
 	}
 
+	private async Task WaitForLeaseAsync()
+	{
+		for (int count = 0; count < 3; count++)
+		{
+			if (_serviceLeaseCreated)
+			{
+				return;
+			}
+
+			await Task.Delay(TimeSpan.FromSeconds(3));
+		}
+
+		throw new TimeoutException("No lease for 3 seconds");
+	}
+
 	private string GetKeyForWorkload(string identity) => _serviceId + identity + "WorkLoad";
 
 	private string GetKeyForExecutionLock(string identity) => _serviceId + identity + "Lock";
@@ -217,6 +251,7 @@ internal class EtcdPersistence: IPersistence
 		rangeEnd[^1] = ++rangeEnd[^1];
 		return rangeEnd.ToString();
 	}
+
 
 
 	private readonly ILogger<EtcdPersistence> _logger;

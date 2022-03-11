@@ -43,6 +43,8 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 		var retryLimit = DateTimeOffset.UtcNow;
 		var retryExecution = false;
 
+		await _priorityManager.ResetPriorityAsync(_identity, stoppingToken);
+
 		while (!stoppingToken.IsCancellationRequested)
 		{
 			try

@@ -20,7 +20,7 @@ public interface IPersistence
 
 	Task UpdatePriorityAsync(string identity, byte priority, CancellationToken cancellationToken);
 
-	Task<(string Identity, long NodeId, byte Priority)[]> GetAllPrioritiesAsync(CancellationToken cancellationToken);
+	IAsyncEnumerable<PriorityEvent> WatchPriorityUpdates(CancellationToken cancellationToken);
 
 	Task WaitForOrderAsync(int order, string identity, long revisionStart, CancellationToken cancellationToken);
 }

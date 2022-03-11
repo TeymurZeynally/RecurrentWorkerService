@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using RecurrentWorkerService.Distributed.Interfaces.Persistence.Models;
 
 namespace RecurrentWorkerService.Distributed.Prioritization.Providers;
 
@@ -11,31 +12,43 @@ internal class PriorityProvider: IPriorityProvider
 
 	public byte[] GetPrioritiesAsc(string identity)
 	{
-		return _prioritiesDictionary.TryGetValue(identity, out var priorities) ? priorities : Array.Empty<byte>();
-
+		return _prioritiesDictionary.TryGetValue(identity, out var nodesDict) 
+			? nodesDict.Values.OrderBy(x => x).ToArray()
+			: Array.Empty<byte>();
 	}
+
 	public byte GetPriority(string identity)
 	{
-		return _currentNodeDictionary.TryGetValue(identity, out var priority) ? priority : byte.MinValue;
+		if (_prioritiesDictionary.TryGetValue(identity, out var nodesDict) && nodesDict.TryGetValue(_nodeId, out var priority))
+		{
+			return priority;
+		}
+
+		return byte.MinValue;
 	}
 
-	public void UpdatePriorityInformation((string Identity, long NodeId, byte Priority)[] priorities)
+	public void UpdatePriorityInformation(PriorityEvent priorityEvent)
 	{
-		_prioritiesDictionary = new ConcurrentDictionary<string, byte[]>(
-			priorities
-				.GroupBy(x => x.Identity)
-				.Select(x => new KeyValuePair<string, byte[]>(
-					x.Key,
-					x.Select(y => y.Priority).OrderBy(x => x).ToArray())));
+		_prioritiesDictionary.TryAdd(priorityEvent.Identity, new ConcurrentDictionary<long, byte>());
 
-		_currentNodeDictionary = new ConcurrentDictionary<string, byte>(
-			priorities
-				.Where(x => x.NodeId == _nodeId)
-				.Select(x => new KeyValuePair<string, byte>(x.Identity, x.Priority)));
+		if(priorityEvent.Priority.HasValue)
+		{
+			var priority = priorityEvent.Priority.Value;
+			_prioritiesDictionary[priorityEvent.Identity].AddOrUpdate(priorityEvent.NodeId, priority, (_, _) =>priority);
+		}
+		else
+		{
+			_prioritiesDictionary[priorityEvent.Identity].TryRemove(priorityEvent.NodeId, out _);
+		}
 	}
 
-	private IReadOnlyDictionary<string, byte[]> _prioritiesDictionary = new ConcurrentDictionary<string, byte[]>();
-	private IReadOnlyDictionary<string, byte> _currentNodeDictionary = new ConcurrentDictionary<string, byte>();
+	public void Reset()
+	{
+		_prioritiesDictionary = new();
+	}
+
+
+	private ConcurrentDictionary <string, ConcurrentDictionary<long, byte>> _prioritiesDictionary = new ();
 
 	private readonly long _nodeId;
 }
