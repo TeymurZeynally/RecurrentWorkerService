@@ -39,7 +39,7 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 
 	public async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
-		await _priorityManager.ResetPriorityAsync(_identity, stoppingToken);
+		await _priorityManager.ResetExecutionResultAsync(_identity, stoppingToken);
 
 		while (!stoppingToken.IsCancellationRequested)
 		{
@@ -126,13 +126,13 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 			_logger.LogDebug($"[{worker}] Start");
 			await worker.ExecuteAsync(stoppingToken);
 			_logger.LogDebug($"[{worker}] Success");
-			await _priorityManager.ResetPriorityAsync(_identity, stoppingToken);
+			await _priorityManager.ResetExecutionResultAsync(_identity, stoppingToken);
 			return true;
 		}
 		catch (Exception e)
 		{
 			_logger.LogError($"[{worker}] Fail: {e}");
-			await _priorityManager.DecreasePriorityAsync(_identity, stoppingToken);
+			await _priorityManager.DecreaseExecutionPriorityAsync(_identity, stoppingToken);
 			return false;
 		}
 	}

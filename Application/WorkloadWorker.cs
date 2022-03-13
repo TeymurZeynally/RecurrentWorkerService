@@ -7,8 +7,7 @@ namespace Application;
 
 internal class WorkloadWorker : IWorkloadWorker
 {
-	private readonly ILogger<WorkloadWorker> _logger
-		;
+	private readonly ILogger<WorkloadWorker> _logger;
 
 	public WorkloadWorker(ILogger<WorkloadWorker> logger)
 	{

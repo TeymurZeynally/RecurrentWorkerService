@@ -9,7 +9,6 @@ using Grpc.Net.Client.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using RecurrentWorkerService.Distributed.Interfaces.Persistence.Models;
 
 namespace RecurrentWorkerService.Distributed.EtcdPersistence.Tests;
 

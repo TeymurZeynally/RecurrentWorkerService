@@ -1,6 +1,4 @@
-﻿using System.Data.SqlClient;
-using Application.Helpers;
-using Dapper;
+﻿using Application.Helpers;
 using RecurrentWorkerService.Workers;
 
 namespace Application;

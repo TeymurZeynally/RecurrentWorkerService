@@ -2,8 +2,9 @@
 using Microsoft.Extensions.Logging;
 using RecurrentWorkerService.Distributed.Interfaces.Persistence;
 using RecurrentWorkerService.Distributed.Interfaces.Prioritization;
+using RecurrentWorkerService.Distributed.Prioritization.Aggregators;
 using RecurrentWorkerService.Distributed.Prioritization.Calculators;
-using RecurrentWorkerService.Distributed.Prioritization.Providers;
+using RecurrentWorkerService.Distributed.Prioritization.Indicators;
 using RecurrentWorkerService.Distributed.Prioritization.Services;
 using RecurrentWorkerService.Distributed.Registration;
 
@@ -15,13 +16,17 @@ public static class DistributedWorkersBuilderExtensions
 	{
 		builder.Services.AddSingleton<IPriorityCalculator, PriorityCalculator>();
 		builder.Services.AddSingleton<IRecurrentExecutionDelayCalculator, RecurrentExecutionDelayCalculator>();
-		builder.Services.AddSingleton<IPriorityProvider, PriorityProvider>(r => new PriorityProvider(builder.NodeId));
+		builder.Services.AddSingleton<IComputedPriorityAggregator, ComputedPriorityAggregator>(r => new ComputedPriorityAggregator(builder.NodeId));
+		builder.Services.AddSingleton<IPriorityChangesAggregator, PriorityChangesAggregator>();
 		builder.Services.AddSingleton<IPriorityCalculator, PriorityCalculator>();
 		builder.Services.AddSingleton<IPriorityManager, PriorityManager>();
+		builder.Services.AddSingleton<IPriorityIndicator, RandomPriorityIndicator>();
 
 		builder.Services.AddHostedService(r => new PriorityService(
 			r.GetService<IPersistence>()!,
-			r.GetService<IPriorityProvider>()!,
+			r.GetService<IComputedPriorityAggregator>()!,
+			r.GetService<IPriorityChangesAggregator>()!,
+			r.GetServices<IPriorityIndicator>().ToArray(),
 			r.GetService<ILogger<PriorityService>>()!));
 
 		return builder;

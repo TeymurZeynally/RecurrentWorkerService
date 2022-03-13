@@ -68,18 +68,19 @@ await Host.CreateDefaultBuilder(args)
 				        .SetRetryOnFailDelay(TimeSpan.FromSeconds(1)));
 				*/
 
-				/*
+				
 				w.AddDistributedRecurrentWorker<RecurrentWorker>(
 				    "RecurrentWorker-1",
 				    s => s.SetPeriod(TimeSpan.FromSeconds(5)).SetRetryOnFailDelay(TimeSpan.Zero));
-				*/
-
 				
+
+				/*
 				w.AddDistributedWorkloadWorker<WorkloadWorker>(
 					"WorkloadWorker-2",
 					s => s.SetRange(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10))
 						.SetStrategies(c => c.Add(0, TimeSpan.FromSeconds(1))
 							.Subtract(200, TimeSpan.FromSeconds(1))));
+				*/
 			})
 			.AddEtcdPersistence(channel)
 			.AddBasicPrioritization();

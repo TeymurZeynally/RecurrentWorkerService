@@ -1,8 +1,6 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using Etcdserverpb;
 using Google.Protobuf;
 using Grpc.Core;
@@ -144,46 +142,45 @@ internal class EtcdPersistence: IPersistence
 			cancellationToken: cancellationToken);
 	}
 
-	public async IAsyncEnumerable<PriorityEvent> WatchPriorityUpdates([EnumeratorCancellation]CancellationToken cancellationToken)
+	public async Task UpdateNodePriorityAsync(byte priority, CancellationToken cancellationToken)
+	{
+		await WaitForLeaseAsync();
+		await _kvClient.PutAsync(new PutRequest
+			{
+				Lease = _nodeId,
+				Key = ByteString.CopyFromUtf8(GetKeyForNodePriority()),
+				Value = ByteString.CopyFrom(priority),
+			},
+			cancellationToken: cancellationToken);
+	}
+
+	public IAsyncEnumerable<PriorityEvent> WatchPriorityUpdates(CancellationToken cancellationToken)
 	{
 		PriorityEvent ConvertToPriorityEvent(KeyValue kv)
 		{
-			var keyMatch = _priorityKeyRegex.Match(kv.Key.ToStringUtf8());
-			var identity = keyMatch.Groups["identity"].Value;
-			var node = Convert.ToInt64(keyMatch.Groups["nodeId"].Value);
+			var keyParts = kv.Key.ToStringUtf8().Split("/");
+			var identity = keyParts[2];
+			var node = Convert.ToInt64(keyParts[3]);
 			var priority = kv.Value.IsEmpty ? default(byte?) : kv.Value.ToByteArray().Single();
 
 			return new PriorityEvent { Identity = identity, NodeId = node, Priority = priority };
 		};
 
-		var iterationPrioritySearchKey = GetSearchKeyForIterationPriority();
-		var key = ByteString.CopyFromUtf8(iterationPrioritySearchKey);
-		var rangeEnd = ByteString.CopyFromUtf8(GetRangeEnd(iterationPrioritySearchKey));
+		return WatchUpdates(GetSearchKeyForIterationPriority(), ConvertToPriorityEvent, cancellationToken);
+	}
 
-		var range = await _kvClient.RangeAsync(new RangeRequest { Key = key, RangeEnd = rangeEnd }, cancellationToken: cancellationToken);
-
-		foreach (var kv in range.Kvs)
+	public IAsyncEnumerable<NodePriorityEvent> WatchNodePriorityUpdates(CancellationToken cancellationToken)
+	{
+		NodePriorityEvent ConvertToPriorityEvent(KeyValue kv)
 		{
-			Debug.Print("1");
-			yield return ConvertToPriorityEvent(kv);
-		}
+			var keyParts = kv.Key.ToStringUtf8().Split("/");
+			var node = Convert.ToInt64(keyParts[2]);
+			var priority = kv.Value.IsEmpty ? default(byte?) : kv.Value.ToByteArray().Single();
 
-		using var watchStream = _watchClient.Watch(cancellationToken: cancellationToken);
-		await watchStream.RequestStream.WriteAsync(
-			new WatchRequest 
-			{
-				CreateRequest = new WatchCreateRequest { Key = key, RangeEnd = rangeEnd, StartRevision = range.Header.Revision + 1 },
-			});
-		await watchStream.RequestStream.CompleteAsync();
+			return new NodePriorityEvent { NodeId = node, Priority = priority };
+		};
 
-		while (await watchStream.ResponseStream.MoveNext(cancellationToken))
-		{
-			foreach (var @event in watchStream.ResponseStream.Current.Events)
-			{
-				Debug.Print("2");
-				yield return ConvertToPriorityEvent(@event.Kv);
-			}
-		}
+		return WatchUpdates(GetSearchKeyForNodePriority(), ConvertToPriorityEvent, cancellationToken);
 	}
 
 	public async Task WaitForOrderAsync(int order, string identity, long revisionStart, CancellationToken cancellationToken)
@@ -217,6 +214,35 @@ internal class EtcdPersistence: IPersistence
 		}
 	}
 
+	private async IAsyncEnumerable<T> WatchUpdates<T>(string searchKey, Func<KeyValue, T> convertFunc, [EnumeratorCancellation] CancellationToken cancellationToken)
+	{
+		var key = ByteString.CopyFromUtf8(searchKey);
+		var rangeEnd = ByteString.CopyFromUtf8(GetRangeEnd(searchKey));
+
+		var range = await _kvClient.RangeAsync(new RangeRequest { Key = key, RangeEnd = rangeEnd }, cancellationToken: cancellationToken);
+
+		foreach (var kv in range.Kvs)
+		{
+			yield return convertFunc(kv);
+		}
+
+		using var watchStream = _watchClient.Watch(cancellationToken: cancellationToken);
+		await watchStream.RequestStream.WriteAsync(
+			new WatchRequest
+			{
+				CreateRequest = new WatchCreateRequest { Key = key, RangeEnd = rangeEnd, StartRevision = range.Header.Revision + 1 },
+			});
+		await watchStream.RequestStream.CompleteAsync();
+
+		while (await watchStream.ResponseStream.MoveNext(cancellationToken))
+		{
+			foreach (var @event in watchStream.ResponseStream.Current.Events)
+			{
+				yield return convertFunc(@event.Kv);
+			}
+		}
+	}
+
 	private async Task WaitForLeaseAsync()
 	{
 		for (int count = 0; count < 3; count++)
@@ -232,17 +258,20 @@ internal class EtcdPersistence: IPersistence
 		throw new TimeoutException("No lease for 3 seconds");
 	}
 
-	private string GetKeyForWorkload(string identity) => _serviceId + identity + "WorkLoad";
+	private string GetKeyForWorkload(string identity) => $"{_serviceId}/{identity}/WorkLoad";
 
-	private string GetKeyForExecutionLock(string identity) => _serviceId + identity + "Lock";
+	private string GetKeyForExecutionLock(string identity) => $"{_serviceId}/{identity}/Lock";
 
-	private string GetKeyForSucceededIteration(string identity, long scheduleIndex) => _serviceId + identity + scheduleIndex + "Success";
+	private string GetKeyForSucceededIteration(string identity, long scheduleIndex) => $"{_serviceId}/{identity}/{scheduleIndex}/Success";
 	
-	private string GetSearchKeyForIterationPriority() => _serviceId + "Priority";
+	private string GetSearchKeyForIterationPriority() => $"{_serviceId}/Priority";
 
-	private string GetKeyForIterationPriority(string identity) => GetSearchKeyForIterationPriority() + identity + "["+ _nodeId + "]";
+	private string GetKeyForIterationPriority(string identity) => $"{GetSearchKeyForIterationPriority()}/{identity}/{_nodeId}";
 
-	private readonly Regex _priorityKeyRegex = new (@".+Priority(?<identity>.+)\[(?<nodeId>\d+)\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+	private string GetSearchKeyForNodePriority() => $"{_serviceId}/NodePriority";
+
+	private string GetKeyForNodePriority() => $"{GetSearchKeyForNodePriority()}/{_nodeId}";
+
 
 	private static string GetRangeEnd(string prefixKey)
 	{
@@ -251,7 +280,6 @@ internal class EtcdPersistence: IPersistence
 		rangeEnd[^1] = ++rangeEnd[^1];
 		return rangeEnd.ToString();
 	}
-
 
 
 	private readonly ILogger<EtcdPersistence> _logger;

@@ -7,12 +7,12 @@ public class NullPriorityManager : IPriorityManager
 		return Task.CompletedTask;
 	}
 
-	public Task ResetPriorityAsync(string identity, CancellationToken cancellationToken)
+	public Task ResetExecutionResultAsync(string identity, CancellationToken cancellationToken)
 	{
 		return Task.CompletedTask;
 	}
 
-	public Task DecreasePriorityAsync(string identity, CancellationToken cancellationToken)
+	public Task DecreaseExecutionPriorityAsync(string identity, CancellationToken cancellationToken)
 	{
 		return Task.CompletedTask;
 	}

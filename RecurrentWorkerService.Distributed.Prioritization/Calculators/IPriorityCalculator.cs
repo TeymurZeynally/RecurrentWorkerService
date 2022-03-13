@@ -2,5 +2,7 @@
 
 internal interface  IPriorityCalculator
 {
-	Task<byte> GetPriorityAsync(DateTimeOffset[] failuresHistory, CancellationToken cancellationToken);
+	Task<byte> GetPriorityAsync(DateTimeOffset[] failuresCount, CancellationToken cancellationToken);
+
+	Task<byte> GetNodePriorityAsync(byte[][] indicators, CancellationToken cancellationToken);
 }
