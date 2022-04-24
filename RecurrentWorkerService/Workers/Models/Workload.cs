@@ -18,7 +18,7 @@ public struct Workload
 
 	public static Workload Zero => new(byte.MinValue);
 
-	public static Workload Percent(byte percent)
+	public static Workload FromPercent(byte percent)
 	{
 		Debug.Assert(percent <= 100, "Percent should be in range from 0 to 100");
 

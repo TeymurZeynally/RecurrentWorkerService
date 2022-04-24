@@ -20,7 +20,7 @@ public static class DistributedWorkersBuilderExtensions
 		builder.Services.AddSingleton<IPriorityChangesAggregator, PriorityChangesAggregator>();
 		builder.Services.AddSingleton<IPriorityCalculator, PriorityCalculator>();
 		builder.Services.AddSingleton<IPriorityManager, PriorityManager>();
-		builder.Services.AddSingleton<IPriorityIndicator, RandomPriorityIndicator>();
+		builder.Services.AddSingleton<IPriorityIndicator, DefaultPriorityIndicator>();
 
 		builder.Services.AddHostedService(r => new PriorityService(
 			r.GetService<IPersistence>()!,

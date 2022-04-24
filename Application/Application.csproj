@@ -8,11 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Dapper" Version="2.0.123" />
-    <PackageReference Include="System.Data.SqlClient" Version="4.8.3" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\RecurrentWorkerService.Distributed.EtcdPersistence\RecurrentWorkerService.Distributed.EtcdPersistence.csproj" />
     <ProjectReference Include="..\RecurrentWorkerService.Distributed.Prioritization\RecurrentWorkerService.Distributed.Prioritization.csproj" />
     <ProjectReference Include="..\RecurrentWorkerService.Distributed\RecurrentWorkerService.Distributed.csproj" />

@@ -6,12 +6,14 @@ using Grpc.Net.Client.Configuration;
 using RecurrentWorkerService.Distributed.EtcdPersistence.Registration;
 using RecurrentWorkerService.Distributed.Prioritization.Registration;
 using RecurrentWorkerService.Distributed.Registration;
+using RecurrentWorkerService.Registration;
+using RecurrentWorkerService.Workers.Models;
 
 var factory = new StaticResolverFactory(addr => new[]
 {
-	new BalancerAddress("10.16.17.139", 12379),
-	new BalancerAddress("10.16.17.139", 22379),
-	new BalancerAddress("10.16.17.139", 32379),
+	new BalancerAddress("192.168.1.74", 23791),
+	new BalancerAddress("192.168.1.74", 23792),
+	new BalancerAddress("192.168.1.74", 23793),
 });
 
 var channel = GrpcChannel.ForAddress(
@@ -41,49 +43,85 @@ var channel = GrpcChannel.ForAddress(
 	});
 
 
-
 await Host.CreateDefaultBuilder(args)
 	.ConfigureServices(services =>
 	{
-		/*
 		services.AddWorkers(w =>
 		{
-			w.AddRecurrentWorker<RecurrentWorker>(s => s.SetPeriod(TimeSpan.FromSeconds(1)));
-			w.AddRecurrentWorker<RecurrentWorker>(s => s.SetPeriod(TimeSpan.FromSeconds(1)));
-			w.AddRecurrentWorker<RecurrentWorker2>(s => s.SetPeriod(TimeSpan.FromSeconds(1)));
-			w.AddRecurrentWorker<RecurrentWorker2>(s => s.SetPeriod(TimeSpan.FromSeconds(1)));
-		});
+			// Direct type registration
+			w.AddCronWorker<ExampleOfCronWorker>(s => s
+				.SetCronExpression("* * * * *")
+				.SetRetryOnFailDelay(TimeSpan.FromSeconds(1)));
 
-		*/
+			w.AddRecurrentWorker<ExampleOfRecurrentWorker>(s => s
+				.SetPeriod(TimeSpan.FromSeconds(1))
+				.SetRetryOnFailDelay(TimeSpan.FromMilliseconds(10)));
+
+			w.AddWorkloadWorker<ExampleOfWorkloadWorker>(s => s
+				.SetRange(TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(5))
+				.SetStrategies(c => c
+					.Multiply(Workload.Zero, 2)
+					.Add(Workload.FromPercent(10), TimeSpan.FromSeconds(30))
+					.Add(Workload.FromPercent(25), TimeSpan.FromSeconds(10))
+					.Subtract(Workload.FromPercent(50), TimeSpan.FromSeconds(30))
+					.Divide(Workload.FromPercent(80), 2d)
+					.Set(Workload.Full, TimeSpan.FromSeconds(1)))
+				.SetRetryOnFailDelay(TimeSpan.FromSeconds(1)));
+
+			// Implementation factory registration
+			w.AddCronWorker(
+				c => new ExampleOfCronWorker(c.GetRequiredService<ILogger<ExampleOfCronWorker>>()),
+				s => s
+					.SetCronExpression("* * * * *")
+					.SetRetryOnFailDelay(TimeSpan.FromSeconds(1)));
+
+			w.AddRecurrentWorker(
+				c => new ExampleOfRecurrentWorker(c.GetRequiredService<ILogger<ExampleOfRecurrentWorker>>()),
+				s => s
+					.SetPeriod(TimeSpan.FromSeconds(1))
+					.SetRetryOnFailDelay(TimeSpan.FromMilliseconds(10)));
+
+			w.AddWorkloadWorker(
+				c => new ExampleOfWorkloadWorker(c.GetRequiredService<ILogger<ExampleOfWorkloadWorker>>()),
+				s => s
+					.SetRange(TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(5))
+					.SetStrategies(c => c
+						.Add(Workload.Zero, TimeSpan.FromSeconds(1))
+						.Set(Workload.Full, TimeSpan.FromSeconds(1)))
+					.SetRetryOnFailDelay(TimeSpan.FromSeconds(1)));
+		});
 
 		services.AddDistributedWorkers(
 			"LocalWorkerService",
 			w =>
 			{
-				/*
-				w.AddDistributedCronWorker<CronWorker>(
+				w.AddDistributedCronWorker<ExampleOfCronWorker>(
 				    "CronWorker-1",
 				    s => s
 				        .SetCronExpression("* * * * *")
 				        .SetRetryOnFailDelay(TimeSpan.FromSeconds(1)));
-				*/
 
-				
-				w.AddDistributedRecurrentWorker<RecurrentWorker>(
+				w.AddDistributedCronWorker(
+				    "CronWorker-2",
+					c => new ExampleOfCronWorker(c.GetRequiredService<ILogger<ExampleOfCronWorker>>()),
+				    s => s
+				        .SetCronExpression("* * * * *")
+				        .SetRetryOnFailDelay(TimeSpan.FromSeconds(1)));
+
+				w.AddDistributedRecurrentWorker<ExampleOfRecurrentWorker>(
 				    "RecurrentWorker-1",
-				    s => s.SetPeriod(TimeSpan.FromSeconds(5)).SetRetryOnFailDelay(TimeSpan.Zero));
+				    s => s
+						.SetPeriod(TimeSpan.FromSeconds(5))
+						.SetRetryOnFailDelay(TimeSpan.Zero));
 				
-
-				/*
-				w.AddDistributedWorkloadWorker<WorkloadWorker>(
-					"WorkloadWorker-2",
+				w.AddDistributedWorkloadWorker<ExampleOfWorkloadWorker>(
+					"WorkloadWorker-1",
 					s => s.SetRange(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10))
-						.SetStrategies(c => c.Add(0, TimeSpan.FromSeconds(1))
-							.Subtract(200, TimeSpan.FromSeconds(1))));
-				*/
+						.SetStrategies(c => c.Add(Workload.Zero, TimeSpan.FromSeconds(1))
+						.Subtract(Workload.FromPercent(50), TimeSpan.FromSeconds(1))));
 			})
 			.AddEtcdPersistence(channel)
-			.AddBasicPrioritization();
+			.AddBasicPrioritization();	
 	})
 	.Build()
 	.RunAsync();
