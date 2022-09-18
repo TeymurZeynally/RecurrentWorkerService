@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using RecurrentWorkerService.Distributed.Interfaces.Persistence;
 using RecurrentWorkerService.Distributed.Interfaces.Prioritization;
 using RecurrentWorkerService.Distributed.Services.Calculators;
@@ -17,6 +18,9 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 	private readonly RecurrentSchedule _schedule;
 	private readonly IPriorityManager _priorityManager;
 	private readonly string _identity;
+	private readonly ActivitySource _activitySource;
+	private readonly KeyValuePair<string, object?>[] _activitySourceTags;
+
 	private long _revision;
 
 	public DistributedRecurrentWorkerService(
@@ -26,7 +30,9 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 		RecurrentWorkerExecutionDateCalculator executionDateCalculator,
 		IPersistence persistence,
 		IPriorityManager priorityManager,
-		string identity)
+		string identity,
+		long nodeId,
+		ActivitySource activitySource)
 	{
 		_logger = logger;
 		_workerFactory = workerFactory;
@@ -35,6 +41,8 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 		_schedule = schedule;
 		_priorityManager = priorityManager;
 		_identity = identity;
+		_activitySource = activitySource;
+		_activitySourceTags = new[] { new KeyValuePair<string, object?>("node", nodeId), new KeyValuePair<string, object?>("identity", identity) };
 	}
 
 	public async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -45,6 +53,7 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 		{
 			try
 			{
+				using var activity = _activitySource.StartActivity(ActivityKind.Internal, name: nameof(DistributedRecurrentWorkerService), tags: _activitySourceTags);
 				using var _ = _logger.BeginScope(_identity);
 
 				_logger.LogDebug($"Waiting for execution order...");
@@ -73,6 +82,8 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 					await _persistence.ReleaseExecutionLockAsync(acquiredLock, stoppingToken);
 					_logger.LogDebug("Acquired lock released");
 				}
+
+				activity?.Dispose();
 
 				_logger.LogDebug($"Next execution will be after {delay:g} at {DateTimeOffset.UtcNow + delay:O}");
 				await Task.Delay(delay, stoppingToken);
@@ -118,6 +129,7 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 
 	private async Task<bool> ExecuteWorker(CancellationToken stoppingToken)
 	{
+		using var activity = _activitySource.StartActivity(ActivityKind.Internal, name: $"{nameof(DistributedRecurrentWorkerService)}.{nameof(ExecuteWorker)}", tags: _activitySourceTags);
 		_logger.LogDebug("Creating new Worker...");
 		var worker = _workerFactory();
 

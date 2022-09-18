@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using RecurrentWorkerService.Distributed.Interfaces.Persistence;
 using RecurrentWorkerService.Distributed.Interfaces.Prioritization;
 using RecurrentWorkerService.Distributed.Prioritization.Aggregators;

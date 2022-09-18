@@ -54,7 +54,7 @@ public class UnitTest1
 				}
 			});
 
-		_persistence = new Persistence.EtcdPersistence(new NullLogger<Persistence.EtcdPersistence>(), channel, "test-service", 1501);
+		_persistence = new Persistence.EtcdPersistence(new NullLogger<Persistence.EtcdPersistence>(), channel, "test-service", 1501, new ActivitySource("a"));
 	}
 
 

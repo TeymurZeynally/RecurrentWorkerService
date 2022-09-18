@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using RecurrentWorkerService.Configuration.Builders;
@@ -14,11 +15,17 @@ namespace RecurrentWorkerService.Distributed.Registration;
 
 public class DistributedWorkersRegistrationBuilder
 {
+	private readonly ActivitySource _activitySource;
 	private readonly IServiceCollection _services;
+	private readonly long _nodeId;
 
-	public DistributedWorkersRegistrationBuilder(IServiceCollection services)
+	public DistributedWorkersRegistrationBuilder(IServiceCollection services, long nodeId)
 	{
+		var assembly = System.Reflection.Assembly.GetExecutingAssembly().GetName();
+
+		_activitySource = new ActivitySource(assembly.Name!, assembly.Version?.ToString());
 		_services = services;
+		_nodeId = nodeId;
 
 		_services.AddSingleton<RecurrentWorkerExecutionDateCalculator>();
 		_services.AddSingleton<CronWorkerExecutionDateCalculator>();
@@ -37,13 +44,15 @@ public class DistributedWorkersRegistrationBuilder
 
 		_services.AddTransient<TWorker>();
 		_services.AddTransient<IDistributedWorkerService>(s => new DistributedRecurrentWorkerService(
-			s.GetService<ILogger<DistributedRecurrentWorkerService>>()!,
-			() => s.GetService<TWorker>()!,
+			s.GetRequiredService<ILogger<DistributedRecurrentWorkerService>>(),
+			s.GetRequiredService<TWorker>,
 			scheduleBuilder.Build(),
-			s.GetService<RecurrentWorkerExecutionDateCalculator>()!,
-			s.GetService<IPersistence>()!,
-			s.GetService<IPriorityManager>()!,
-			identity));
+			s.GetRequiredService<RecurrentWorkerExecutionDateCalculator>(),
+			s.GetRequiredService<IPersistence>(),
+			s.GetRequiredService<IPriorityManager>(),
+			identity,
+			_nodeId,
+			_activitySource));
 		return this;
 	}
 
@@ -56,13 +65,15 @@ public class DistributedWorkersRegistrationBuilder
 		scheduleBuilderAction(scheduleBuilder);
 
 		_services.AddTransient<IDistributedWorkerService>(s => new DistributedRecurrentWorkerService(
-			s.GetService<ILogger<DistributedRecurrentWorkerService>>()!,
+			s.GetRequiredService<ILogger<DistributedRecurrentWorkerService>>(),
 			() => implementationFactory(s),
 			scheduleBuilder.Build(),
-			s.GetService<RecurrentWorkerExecutionDateCalculator>()!,
-			s.GetService<IPersistence>()!,
-			s.GetService<IPriorityManager>()!,
-			identity));
+			s.GetRequiredService<RecurrentWorkerExecutionDateCalculator>(),
+			s.GetRequiredService<IPersistence>(),
+			s.GetRequiredService<IPriorityManager>(),
+			identity,
+			_nodeId,
+			_activitySource));
 		return this;
 	}
 
@@ -76,13 +87,15 @@ public class DistributedWorkersRegistrationBuilder
 
 		_services.AddTransient<TWorker>();
 		_services.AddTransient<IDistributedWorkerService>(s => new DistributedCronWorkerService(
-			s.GetService<ILogger<DistributedCronWorkerService>>()!,
-			() => s.GetService<TWorker>()!,
+			s.GetRequiredService<ILogger<DistributedCronWorkerService>>(),
+			s.GetRequiredService<TWorker>,
 			scheduleBuilder.Build(),
-			s.GetService<CronWorkerExecutionDateCalculator>()!,
-			s.GetService<IPersistence>()!,
-			s.GetService<IPriorityManager>()!,
-			identity));
+			s.GetRequiredService<CronWorkerExecutionDateCalculator>(),
+			s.GetRequiredService<IPersistence>(),
+			s.GetRequiredService<IPriorityManager>(),
+			identity,
+			_nodeId,
+			_activitySource));
 		return this;
 	}
 
@@ -95,13 +108,15 @@ public class DistributedWorkersRegistrationBuilder
 		scheduleBuilderAction(scheduleBuilder);
 
 		_services.AddTransient<IDistributedWorkerService>(s => new DistributedCronWorkerService(
-			s.GetService<ILogger<DistributedCronWorkerService>>()!,
+			s.GetRequiredService<ILogger<DistributedCronWorkerService>>(),
 			() => implementationFactory(s),
 			scheduleBuilder.Build(),
-			s.GetService<CronWorkerExecutionDateCalculator>()!,
-			s.GetService<IPersistence>()!,
-			s.GetService<IPriorityManager>()!,
-			identity));
+			s.GetRequiredService<CronWorkerExecutionDateCalculator>(),
+			s.GetRequiredService<IPersistence>(),
+			s.GetRequiredService<IPriorityManager>(),
+			identity,
+			_nodeId,
+			_activitySource));
 		return this;
 	}
 
@@ -115,13 +130,15 @@ public class DistributedWorkersRegistrationBuilder
 
 		_services.AddTransient<TWorker>();
 		_services.AddTransient<IDistributedWorkerService>(s => new DistributedWorkloadWorkerService(
-			s.GetService<ILogger<DistributedWorkloadWorkerService>>()!,
-			() => s.GetService<TWorker>()!,
+			s.GetRequiredService<ILogger<DistributedWorkloadWorkerService>>(),
+			s.GetRequiredService<TWorker>,
 			scheduleBuilder.Build(),
-			s.GetService<WorkloadWorkerExecutionDelayCalculator>()!,
-			s.GetService<IPersistence>()!,
-			s.GetService<IPriorityManager>()!,
-			identity));
+			s.GetRequiredService<WorkloadWorkerExecutionDelayCalculator>(),
+			s.GetRequiredService<IPersistence>(),
+			s.GetRequiredService<IPriorityManager>(),
+			identity,
+			_nodeId,
+			_activitySource));
 		return this;
 	}
 
@@ -134,13 +151,15 @@ public class DistributedWorkersRegistrationBuilder
 		scheduleBuilderAction(scheduleBuilder);
 
 		_services.AddTransient<IDistributedWorkerService>(s => new DistributedWorkloadWorkerService(
-			s.GetService<ILogger<DistributedWorkloadWorkerService>>()!,
+			s.GetRequiredService<ILogger<DistributedWorkloadWorkerService>>(),
 			() => implementationFactory(s),
 			scheduleBuilder.Build(),
-			s.GetService<WorkloadWorkerExecutionDelayCalculator>()!,
-			s.GetService<IPersistence>()!,
-			s.GetService<IPriorityManager>()!,
-			identity));
+			s.GetRequiredService<WorkloadWorkerExecutionDelayCalculator>(),
+			s.GetRequiredService<IPersistence>(),
+			s.GetRequiredService<IPriorityManager>(),
+			identity,
+			_nodeId,
+			_activitySource));
 		return this;
 	}
 }

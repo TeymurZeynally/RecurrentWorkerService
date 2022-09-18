@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using RecurrentWorkerService.Distributed.Interfaces.Persistence;
 using RecurrentWorkerService.Distributed.Interfaces.Prioritization;
 using RecurrentWorkerService.Distributed.Services.Calculators;
@@ -17,6 +18,9 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 	private readonly CronSchedule _schedule;
 	private readonly IPriorityManager _priorityManager;
 	private readonly string _identity;
+	private readonly ActivitySource _activitySource;
+	private readonly KeyValuePair<string, object?>[] _activitySourceTags;
+
 	private long _revision;
 
 	public DistributedCronWorkerService(
@@ -26,7 +30,9 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 		CronWorkerExecutionDateCalculator executionDateCalculator,
 		IPersistence persistence,
 		IPriorityManager priorityManager,
-		string identity)
+		string identity,
+		long nodeId,
+		ActivitySource activitySource)
 	{
 		_logger = logger;
 		_workerFactory = workerFactory;
@@ -35,6 +41,8 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 		_schedule = schedule;
 		_priorityManager = priorityManager;
 		_identity = identity;
+		_activitySource = activitySource;
+		_activitySourceTags = new[] { new KeyValuePair<string, object?>("node", nodeId), new KeyValuePair<string, object?>("identity", identity) };
 	}
 
 	public async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -60,6 +68,8 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 					currentN = nextN;
 					retryLimit = _executionDateCalculator.CalculateNextExecutionDate(_schedule.Expression, DateTimeOffset.UtcNow).ExecutionDate;
 				}
+
+				using var activity = _activitySource.StartActivity(ActivityKind.Internal, name: nameof(DistributedCronWorkerService), tags: _activitySourceTags);
 
 				_logger.LogDebug($"Waiting for execution order...");
 				await _priorityManager.WaitForExecutionOrderAsync(_identity, _revision, GetPersistentItemsLifetime(retryLimit), stoppingToken);
@@ -118,6 +128,8 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 
 	private async Task<bool> ExecuteWorker(CancellationToken stoppingToken)
 	{
+		using var activity = _activitySource.StartActivity(ActivityKind.Internal, name: $"{nameof(DistributedCronWorkerService)}.{nameof(ExecuteWorker)}", tags: _activitySourceTags);
+
 		_logger.LogDebug("Creating new Worker...");
 		var worker = _workerFactory();
 

@@ -1,0 +1,12 @@
+﻿from(bucket: "experiment_app")
+  |> range(start: 0)
+  |> filter(fn: (r) => r["_measurement"] == "spans")
+  |> filter(fn: (r) => r["name"] == name or r["name"] == "AcquireExecutionLockAsync" or r["name"] == payload)
+  |> filter(fn: (r) => r["_field"] == "duration_nano" or (r["_field"] == "identity" and r["_value"] == identity))
+  |> pivot(rowKey: ["span_id"], columnKey: ["_field"], valueColumn: "_value")
+  |> group()
+  |> pivot(rowKey: ["trace_id"], columnKey: ["name"], valueColumn: "duration_nano")
+  |> rename(fn: (column) => if column == name then "lib_duration" else if column == payload then "code_duration" else if column == "AcquireExecutionLockAsync" then "lock_duration" else "trace_id")
+  |> filter(fn: (r) => exists r["lib_duration"] and exists r["code_duration"] and exists r["lock_duration"])
+
+
