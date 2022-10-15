@@ -10,7 +10,7 @@ internal interface IComputedPriorityAggregator
 
 	void ResetPriorityInformation();
 
-	void UpdateNodePriorityInformation(long nodeId, byte? priority);
+	void UpdateNodePriorityInformation(NodePriorityEvent priorityEvent);
 
 	void ResetNodePriorityInformation();
 }

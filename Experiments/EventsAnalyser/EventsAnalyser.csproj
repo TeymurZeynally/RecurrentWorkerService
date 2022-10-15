@@ -13,18 +13,21 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Queries\Flux.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Flux.resx</DependentUpon>
-    </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Update="Queries\Flux.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Flux.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
+    <Content Include="Queries\QueryPrioritiesReceiveTimestamp.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <None Remove="Queries\QueryPersistenceOperationsDuration.txt" />
+    <Content Include="Queries\QueryPersistenceOperationsDuration.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <None Remove="Queries\QueryLibAndCodeOperationsDuration.txt" />
+    <Content Include="Queries\QueryLibAndCodeOperationsDuration.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <None Remove="Queries\QueryOperationsTimeAndDuration.txt" />
+    <Content Include="Queries\QueryOperationsTimeAndDuration.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

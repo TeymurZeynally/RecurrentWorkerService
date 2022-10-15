@@ -11,9 +11,9 @@ using RecurrentWorkerService.Workers.Models;
 
 var factory = new StaticResolverFactory(addr => new[]
 {
-	new BalancerAddress("10.16.17.139", 23791),
-	new BalancerAddress("10.16.17.139", 23792),
-	new BalancerAddress("10.16.17.139", 23793),
+	new BalancerAddress("localhost", 23791),
+	new BalancerAddress("localhost", 23792),
+	new BalancerAddress("localhost", 23793),
 });
 
 var channel = GrpcChannel.ForAddress(

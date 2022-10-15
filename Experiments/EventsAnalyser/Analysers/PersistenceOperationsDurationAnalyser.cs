@@ -17,11 +17,11 @@ namespace EventsAnalyser.Analysers
 
 		public async Task<AnalysisResult[]> Analyse()
 		{
-			var query = Flux.QueryPersistenceOperationsDuration;
+			var query = await File.ReadAllTextAsync("Queries/QueryPersistenceOperationsDuration.txt").ConfigureAwait(false);
 
 			Console.WriteLine(query);
 
-			var operations = await _queryApi.QueryAsync<PersistenceOperation>(query, "KSS").ConfigureAwait(false);
+			var operations = await _queryApi.QueryAsync<PersistenceOperation>(query, "TZ").ConfigureAwait(false);
 
 			return operations
 				.GroupBy(x => x.Name)

@@ -2,12 +2,13 @@
 
 using EventsAnalyser.Analysers;
 using EventsAnalyser.Helpers;
+using EventsAnalyser.Queries.Models;
 using InfluxDB.Client;
 
 
 var options = new InfluxDBClientOptions.Builder()
 	.Url("http://localhost:8086")
-	.AuthenticateToken(@"OyjJEJ9mARG6V8FVgI-EcsQaLvpxzfq3Rx2IQ8zjI5H-nYe4H8yHotdQtF3zZKIhtxe9eWnHP-3uX04CkUCsHg==")
+	.AuthenticateToken(@"S05hCwUie9qDicNHHQAJoGfrIH6tzOapmZjHKQLdvgBR-_fR3nQnwUUd5rzriRceNAZO5kclNymCSpvnmSI6lA==")
 	.TimeOut(TimeSpan.FromMinutes(10))
 	.Build();
 var influxDbClient = InfluxDBClientFactory.Create(options);
@@ -15,8 +16,16 @@ var influxDbClient = InfluxDBClientFactory.Create(options);
 var queryApi = influxDbClient.GetQueryApi();
 
 
+
+var result = await new PeriodicOperationsIntersectionAnalyser(queryApi).Validate(TimeSpan.FromTicks(1), PayloadType.Fast, "Recurrent-Fast");
+
+	Console.WriteLine(result);
+	
+
+
+
 /*
-var result = await new PeriodicOperationsValidator(queryApi).Validate(TimeSpan.FromSeconds(1), PayloadType.Fast, "Recurrent-Fast");
+var result = await new PeriodicOperationsAnalyser(queryApi).Validate(TimeSpan.FromTicks(1), PayloadType.Fast, "Recurrent-Fast");
 
 foreach (var r in result)
 {
@@ -24,11 +33,9 @@ foreach (var r in result)
 	
 }
 
-*/
-
-
 /*
-var result = await new LibAndCodeOperationsValidator(queryApi).Validate("DistributedRecurrentWorkerService", PayloadType.Fast, "Recurrent-Fast");
+
+var result = await new LibAndCodeOperationsAnalyser(queryApi).Validate("DistributedRecurrentWorkerService", PayloadType.Fast, "Recurrent-Fast");
 
 foreach (var r in result)
 {
@@ -36,8 +43,7 @@ foreach (var r in result)
 
 }
 
-*/
-
+/*
 var results = await new PersistenceOperationsDurationAnalyser(queryApi).Analyse();
 
 foreach (var result in results)
@@ -50,3 +56,14 @@ foreach (var result in results)
 	Console.WriteLine(@$"Errors: {result.Errors.Count}: {string.Join(",", result.Errors.Select(x => $"({x.Value} {x.TraceId})"))}");
 	Console.WriteLine();
 }
+
+var result = await new PrioritiesReceiveTimestampAnalyser(queryApi).Analyse("UpdatePriorityInformation");
+
+Console.WriteLine(@$"Parameter: {result.Parameter}");
+Console.WriteLine(@$"Mean: {TimeSpanHelper.FromNanoseconds(result.Mean)}");
+Console.WriteLine(@$"StandardDeviation: {TimeSpanHelper.FromNanoseconds(result.StandardDeviation)}");
+Console.WriteLine(@$"Variance: {result.Variance}");
+Console.WriteLine(@$"Error: {TimeSpanHelper.FromNanoseconds(result.Error)}");
+Console.WriteLine(@$"Errors: {result.Errors.Count}: {string.Join(",", result.Errors.Select(x => $"({x.Value} {x.TraceId})"))}");
+Console.WriteLine();
+*/

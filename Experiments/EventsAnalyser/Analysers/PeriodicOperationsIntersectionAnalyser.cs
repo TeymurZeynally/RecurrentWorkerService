@@ -5,42 +5,40 @@ using InfluxDB.Client;
 
 namespace EventsAnalyser.Analysers
 {
-	internal class PeriodicOperationsAnalyser
+	internal class PeriodicOperationsIntersectionAnalyser
 	{
 		private readonly QueryApi _queryApi;
 
-		public PeriodicOperationsAnalyser(QueryApi queryApi)
+		public PeriodicOperationsIntersectionAnalyser(QueryApi queryApi)
 		{
 			_queryApi = queryApi;
 		}
 
-		public async Task<TimeSpan[]> Validate(TimeSpan period, PayloadType payload, string identity)
+		public async Task<bool> Validate(TimeSpan period, PayloadType payload, string identity)
 		{
 			var name = $"{payload}Payload.ExecuteAsync";
 			var parameters = QueryParametersBuilder.Build(new { name, identity });
 			var query = parameters + await File.ReadAllTextAsync("Queries/QueryOperationsTimeAndDuration.txt").ConfigureAwait(false);
 
 			Console.WriteLine(query);
-
+			
 			var previous = default(PeriodicOperationDuration);
-			var deltas = new List<TimeSpan>();
 
 			await foreach (var operation in _queryApi.QueryAsyncEnumerable<PeriodicOperationDuration>(query, "TZ").ConfigureAwait(false))
 			{
 				if (previous != null)
 				{
-					var expectedDate = previous.DateTimeOffset + (previous.Duration > period ? previous.Duration : period);
-
-					deltas.Add(operation.DateTimeOffset - expectedDate);
-
-					Console.WriteLine($"{previous.DateTimeOffset} | {previous.Duration} | {expectedDate} | {operation.DateTimeOffset} | {operation.Duration}  | {deltas.Last()}");
+					var previousOperationEndTimestamp = previous.DateTimeOffset + previous.Duration;
+					if (operation.DateTimeOffset < previousOperationEndTimestamp)
+					{
+						return false;
+					}
 				}
-
-
+				
 				previous = operation;
 			}
 
-			return deltas.ToArray();
+			return true;
 		}
 	}
 }

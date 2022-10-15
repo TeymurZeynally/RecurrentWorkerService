@@ -1,0 +1,8 @@
+﻿from(bucket: "experiment_app")
+  |> range(start: 0)
+  |> filter(fn: (r) => r["_measurement"] == "spans")
+  |> filter(fn: (r) => r["name"] == priorityOperationName)
+  |> filter(fn: (r) => r["_field"] == "priority_event_id" or r["_field"] == "node")
+  |> keep(columns: ["_time", "_field", "_value", "name", "priority_event", "span_id", "trace_id"])
+  |> pivot(rowKey: ["_time", "span_id"], columnKey: ["_field"], valueColumn: "_value")
+

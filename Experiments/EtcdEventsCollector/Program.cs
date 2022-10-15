@@ -16,9 +16,9 @@ HttpClient.DefaultProxy = new WebProxy();
 
 var factory = new StaticResolverFactory(addr => new[]
 {
-	new BalancerAddress("10.16.17.139", 23791),
-	new BalancerAddress("10.16.17.139", 23792),
-	new BalancerAddress("10.16.17.139", 23793),
+	new BalancerAddress("localhost", 23791),
+	new BalancerAddress("localhost", 23792),
+	new BalancerAddress("localhost", 23793),
 });
 
 var channel = GrpcChannel.ForAddress(
@@ -54,7 +54,7 @@ using var tracerProvider = Sdk.CreateTracerProviderBuilder()
 	.AddConsoleExporter()
 	.AddOtlpExporter(opt =>
 	{
-		opt.Endpoint = new Uri("http://10.16.17.139:4317");
+		opt.Endpoint = new Uri("http://localhost:4317");
 		opt.Protocol = OtlpExportProtocol.Grpc;
 		opt.BatchExportProcessorOptions = new BatchExportProcessorOptions<Activity>
 		{

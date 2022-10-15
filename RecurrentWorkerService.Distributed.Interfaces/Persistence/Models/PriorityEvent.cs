@@ -2,6 +2,8 @@
 
 public struct PriorityEvent
 {
+	public long Revision { get; set; }
+	
 	public string Identity { get; set; }
 
 	public long NodeId { get; set; }

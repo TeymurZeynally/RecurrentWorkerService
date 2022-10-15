@@ -25,6 +25,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EtcdEventsCollector", "Expe
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventsAnalyser", "Experiments\EventsAnalyser\EventsAnalyser.csproj", "{ED762548-66CC-47D9-A61C-B8C23318C96F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExperimentRunner", "Experiments\ExperimentRunner\ExperimentRunner.csproj", "{BB0A4BB0-1047-4BE0-8C9E-72A0BABDCE35}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,6 +73,10 @@ Global
 		{ED762548-66CC-47D9-A61C-B8C23318C96F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ED762548-66CC-47D9-A61C-B8C23318C96F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ED762548-66CC-47D9-A61C-B8C23318C96F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB0A4BB0-1047-4BE0-8C9E-72A0BABDCE35}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB0A4BB0-1047-4BE0-8C9E-72A0BABDCE35}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB0A4BB0-1047-4BE0-8C9E-72A0BABDCE35}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB0A4BB0-1047-4BE0-8C9E-72A0BABDCE35}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -79,6 +85,7 @@ Global
 		{F69EB547-988C-441A-BD7C-84445C3A44FF} = {50AC30D0-6741-4183-8F95-1D28C79C30B4}
 		{B9200D43-86D7-4639-8521-CE2FFD9649DD} = {50AC30D0-6741-4183-8F95-1D28C79C30B4}
 		{ED762548-66CC-47D9-A61C-B8C23318C96F} = {50AC30D0-6741-4183-8F95-1D28C79C30B4}
+		{BB0A4BB0-1047-4BE0-8C9E-72A0BABDCE35} = {50AC30D0-6741-4183-8F95-1D28C79C30B4}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {178F5451-9534-4E21-AADE-4B0F50A6F17E}

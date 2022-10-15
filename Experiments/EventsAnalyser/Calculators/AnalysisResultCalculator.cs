@@ -6,7 +6,7 @@ namespace EventsAnalyser.Calculators
 {
 	internal static class AnalysisResultCalculator
 	{
-		public static AnalysisResult Calculate(string name, (double Value, string TraceId)[] measurements)
+		public static AnalysisResult Calculate(string name, (double Value, string Id)[] measurements)
 		{
 			checked
 			{

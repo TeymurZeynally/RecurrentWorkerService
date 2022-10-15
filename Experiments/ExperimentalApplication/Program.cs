@@ -19,15 +19,29 @@ using RecurrentWorkerService.Distributed.Registration;
 using OpenTelemetry.Trace;
 using RecurrentWorkerService.Workers.Models;
 
-HttpClient.DefaultProxy = new WebProxy();
+var env = Environment.GetEnvironmentVariable("EXPERIMENT_ENV") ?? "local";
+var etcdHostsKeyUrl = $"https://experiments-config.teymur.workers.dev?key={env}_etcd_hosts";
+var otlpHostKeyUrl = $"https://experiments-config.teymur.workers.dev?key={env}_otlp_uri";
 
-var factory = new StaticResolverFactory(addr => new[]
-{
-	new BalancerAddress("10.16.17.139", 23791),
-	new BalancerAddress("10.16.17.139", 23792),
-	new BalancerAddress("10.16.17.139", 23793),
-});
+var etcdHostsEnv = Environment.GetEnvironmentVariable("EXPERIMENT_ETCD_HOSTS");
+var etcdHostsString = etcdHostsEnv == null
+	? await new HttpClient().GetAsync(etcdHostsKeyUrl).Result.EnsureSuccessStatusCode().Content.ReadAsStringAsync()
+	: etcdHostsEnv;
 
+var etcdBalancerAddresses = etcdHostsString.Split(";")
+	.Select(v => new BalancerAddress(v.Split(":").First(), int.Parse(v.Split(":").Last())))
+	.ToArray();
+
+
+Console.WriteLine("Etcd hosts:");
+etcdBalancerAddresses.ToList().ForEach(x => Console.WriteLine($"{x.EndPoint.Host}:{x.EndPoint.Port}"));
+
+var otlpAddress = await new HttpClient().GetAsync(otlpHostKeyUrl).Result.EnsureSuccessStatusCode().Content.ReadAsStringAsync();
+
+Console.WriteLine("Ptlp host");
+Console.WriteLine(otlpAddress);
+
+var factory = new StaticResolverFactory(addr => etcdBalancerAddresses);
 var channel = GrpcChannel.ForAddress(
 	"static://",
 	new GrpcChannelOptions
@@ -65,7 +79,7 @@ using var tracerProvider = Sdk.CreateTracerProviderBuilder()
 	.AddConsoleExporter()
 	.AddOtlpExporter(opt =>
 	{
-		opt.Endpoint = new Uri("http://10.16.17.139:4317");
+		opt.Endpoint = new Uri(otlpAddress);
 		opt.Protocol = OtlpExportProtocol.Grpc;
 		opt.BatchExportProcessorOptions = new BatchExportProcessorOptions<Activity>
 		{

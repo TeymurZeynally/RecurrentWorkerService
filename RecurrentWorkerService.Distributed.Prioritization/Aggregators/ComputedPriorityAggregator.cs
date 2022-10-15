@@ -48,6 +48,7 @@ internal class ComputedPriorityAggregator: IComputedPriorityAggregator
 	public void UpdatePriorityInformation(PriorityEvent priorityEvent)
 	{
 		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityNodeTags);
+		activity?.AddTag("priority_event_id", priorityEvent.Revision);
 
 		_prioritiesDictionary.TryAdd(priorityEvent.Identity, new ConcurrentDictionary<long, byte>());
 
@@ -69,17 +70,18 @@ internal class ComputedPriorityAggregator: IComputedPriorityAggregator
 		_prioritiesDictionary = new();
 	}
 
-	public void UpdateNodePriorityInformation(long nodeId, byte? priority)
+	public void UpdateNodePriorityInformation(NodePriorityEvent priorityEvent)
 	{
 		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityNodeTags);
+		activity?.AddTag("priority_event_id", priorityEvent.Revision);
 
-		if (priority.HasValue)
+		if (priorityEvent.Priority.HasValue)
 		{
-			_nodePrioritiesDictionary.AddOrUpdate(nodeId, priority.Value, (_, _) => priority.Value);
+			_nodePrioritiesDictionary.AddOrUpdate(priorityEvent.NodeId, priorityEvent.Priority.Value, (_, _) => priorityEvent.Priority.Value);
 		}
 		else
 		{
-			_nodePrioritiesDictionary.TryRemove(nodeId, out _);
+			_nodePrioritiesDictionary.TryRemove(priorityEvent.NodeId, out _);
 		}
 	}
 

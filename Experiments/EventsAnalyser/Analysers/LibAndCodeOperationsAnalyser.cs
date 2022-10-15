@@ -18,13 +18,13 @@ namespace EventsAnalyser.Analysers
 		{
 			var payloadName = $"{payload}Payload.ExecuteAsync";
 			var parameters = QueryParametersBuilder.Build(new { name, payload = payloadName, identity });
-			var query = parameters + Flux.QueryLibAndCodeOperationsDuration;
+			var query = parameters + await File.ReadAllTextAsync("Queries/QueryLibAndCodeOperationsDuration.txt").ConfigureAwait(false);
 
 			Console.WriteLine(query);
 
 			var results = new List<TimeSpan>();
 
-			await foreach (var operation in _queryApi.QueryAsyncEnumerable<LibAndCodeOperationsDuration>(query, "KSS").ConfigureAwait(false))
+			await foreach (var operation in _queryApi.QueryAsyncEnumerable<LibAndCodeOperationsDuration>(query, "TZ").ConfigureAwait(false))
 			{
 				results.Add(operation.LibDuration - operation.LockDuration - operation.CodeDuration);
 

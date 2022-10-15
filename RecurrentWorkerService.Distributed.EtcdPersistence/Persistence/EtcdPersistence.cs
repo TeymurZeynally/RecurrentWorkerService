@@ -185,7 +185,7 @@ internal class EtcdPersistence: IPersistence
 			var node = Convert.ToInt64(keyParts[3]);
 			var priority = kv.Value.IsEmpty ? default(byte?) : kv.Value.ToByteArray().Single();
 
-			return new PriorityEvent { Identity = identity, NodeId = node, Priority = priority };
+			return new PriorityEvent { Revision = kv.ModRevision, Identity = identity, NodeId = node, Priority = priority };
 		};
 
 		return WatchUpdates(GetSearchKeyForIterationPriority(), ConvertToPriorityEvent, cancellationToken);
@@ -199,7 +199,7 @@ internal class EtcdPersistence: IPersistence
 			var node = Convert.ToInt64(keyParts[2]);
 			var priority = kv.Value.IsEmpty ? default(byte?) : kv.Value.ToByteArray().Single();
 
-			return new NodePriorityEvent { NodeId = node, Priority = priority };
+			return new NodePriorityEvent { Revision = kv.ModRevision, NodeId = node, Priority = priority };
 		};
 
 		return WatchUpdates(GetSearchKeyForNodePriority(), ConvertToPriorityEvent, cancellationToken);
