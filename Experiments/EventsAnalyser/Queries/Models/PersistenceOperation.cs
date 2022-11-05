@@ -1,20 +1,19 @@
 ﻿using EventsAnalyser.Helpers;
 using InfluxDB.Client.Core;
 
-namespace EventsAnalyser.Queries.Models
+namespace EventsAnalyser.Queries.Models;
+
+internal class PersistenceOperation
 {
-	internal class PersistenceOperation
-	{
-		[Column("duration_nano")]
-		public long DurationNanoseconds { get; set; }
+	[Column("duration_nano")]
+	public long DurationNanoseconds { get; set; }
 
-		[Column("name")]
-		public string Name { get; set; }
+	[Column("name")]
+	public string Name { get; set; }
 
 
-		[Column("trace_id")]
-		public string TraceId { get; set; }
+	[Column("trace_id")]
+	public string TraceId { get; set; }
 
-		public TimeSpan Duration => TimeSpanHelper.FromNanoseconds(DurationNanoseconds);
-	}
+	public TimeSpan Duration => TimeSpanHelper.FromNanoseconds(DurationNanoseconds);
 }

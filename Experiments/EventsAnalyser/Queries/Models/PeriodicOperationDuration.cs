@@ -1,18 +1,17 @@
 ﻿using EventsAnalyser.Helpers;
 using InfluxDB.Client.Core;
 
-namespace EventsAnalyser.Queries.Models
+namespace EventsAnalyser.Queries.Models;
+
+internal class PeriodicOperationDuration
 {
-	internal class PeriodicOperationDuration
-	{
-		[Column("duration_nano")]
-		public long DurationNanoseconds { get; set; }
+	[Column("duration_nano")]
+	public long DurationNanoseconds { get; set; }
 
-		[Column(IsTimestamp = true)]
-		public DateTime DateTime { get; set; }
+	[Column(IsTimestamp = true)]
+	public DateTime DateTime { get; set; }
 
-		public DateTimeOffset DateTimeOffset => new(DateTime);
+	public DateTimeOffset DateTimeOffset => new(DateTime);
 
-		public TimeSpan Duration => TimeSpanHelper.FromNanoseconds(DurationNanoseconds);
-	}
+	public TimeSpan Duration => TimeSpanHelper.FromNanoseconds(DurationNanoseconds);
 }

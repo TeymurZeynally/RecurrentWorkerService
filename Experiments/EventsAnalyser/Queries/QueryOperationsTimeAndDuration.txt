@@ -1,5 +1,5 @@
 ﻿from(bucket: "experiment_app")
-  |> range(start: 0)
+  |> range(start: time(v: startTimeStamp), stop: time(v: endTimeStamp))
   |> filter(fn: (r) => r["_measurement"] == "spans")
   |> filter(fn: (r) => r["name"] == name )
   |> filter(fn: (r) => r["_field"] == "duration_nano" or (r["_field"] == "identity" and r["_value"] == identity))

@@ -1,32 +1,40 @@
-﻿using EventsAnalyser.Calculators;
+﻿using EventsAnalyser.Builders;
+using EventsAnalyser.Calculators;
 using EventsAnalyser.Calculators.Models;
 using EventsAnalyser.Queries;
 using EventsAnalyser.Queries.Models;
+using FluentAssertions;
 using InfluxDB.Client;
 
-namespace EventsAnalyser.Analysers
+namespace EventsAnalyser.Analysers;
+
+internal class PersistenceOperationsDurationAnalyser
 {
-	internal class PersistenceOperationsDurationAnalyser
+	private readonly QueryApi _queryApi;
+
+	public PersistenceOperationsDurationAnalyser(QueryApi queryApi)
 	{
-		private readonly QueryApi _queryApi;
+		_queryApi = queryApi;
+	}
 
-		public PersistenceOperationsDurationAnalyser(QueryApi queryApi)
+	public async Task<AnalysisResult[]> Analyse(Interval interval)
+	{
+		var parameters = QueryParametersBuilder.Build(new
 		{
-			_queryApi = queryApi;
-		}
+			startTimeStamp = interval.StartTimeStamp.UtcDateTime.ToString("O"),
+			endTimeStamp = interval.EndTimeStamp.UtcDateTime.ToString("O"),
+		});
+		var query = parameters + await File.ReadAllTextAsync("Queries/QueryPersistenceOperationsDuration.txt").ConfigureAwait(false);
 
-		public async Task<AnalysisResult[]> Analyse()
-		{
-			var query = await File.ReadAllTextAsync("Queries/QueryPersistenceOperationsDuration.txt").ConfigureAwait(false);
+		Console.WriteLine(query);
 
-			Console.WriteLine(query);
+		var operations = await _queryApi.QueryAsync<PersistenceOperation>(query, "TZ").ConfigureAwait(false);
 
-			var operations = await _queryApi.QueryAsync<PersistenceOperation>(query, "TZ").ConfigureAwait(false);
-
-			return operations
-				.GroupBy(x => x.Name)
-				.Select(x => AnalysisResultCalculator.Calculate(x.Key, x.Select(v => ((double)v.DurationNanoseconds, v.TraceId)).ToArray()))
-				.ToArray();
-		}
+		operations.Count.Should().NotBe(0);
+		
+		return operations
+			.GroupBy(x => x.Name)
+			.Select(x => AnalysisResultCalculator.Calculate(x.Key, x.Select(v => ((double)v.DurationNanoseconds, v.TraceId)).ToArray()))
+			.ToArray();
 	}
 }

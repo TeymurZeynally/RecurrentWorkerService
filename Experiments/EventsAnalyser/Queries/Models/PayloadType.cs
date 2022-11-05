@@ -1,10 +1,9 @@
-﻿namespace EventsAnalyser.Queries.Models
+﻿namespace EventsAnalyser.Queries.Models;
+
+internal enum PayloadType
 {
-	internal enum PayloadType
-	{
-		Fast,
-		Immediate,
-		Problem,
-		Slow
-	}
+	Fast,
+	Immediate,
+	Problem,
+	Slow
 }

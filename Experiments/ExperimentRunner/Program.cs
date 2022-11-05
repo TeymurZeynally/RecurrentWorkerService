@@ -1,59 +1,72 @@
-﻿
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text;
 using ExperimentRunner.Models;
 using Microsoft.Extensions.Configuration;
 
 
-var configuration =  new ConfigurationBuilder().AddJsonFile($"appsettings.json").Build();
-var result = configuration.GetRequiredSection("Plan").Get<ExperimentPlanItem[]>();
+var configuration = new ConfigurationBuilder().AddJsonFile($"appsettings.json").Build().Get<Configuration>();
 
+await RunFastCommandAndWait($"docker container rm -f etcd_events_collector");
+var kvEtcdHosts = string.Join(";", configuration.Plan.SelectMany(x => x.Storages.Select(k => k.Name)).Distinct().Select(x => $"{x}:2379").ToArray());
+await RunFastCommandAndWait($"docker run -d --name etcd_events_collector --network experiment -e EXPERIMENT_ETCD_HOSTS={kvEtcdHosts} etcd_events_collector");
 
-var proc = result[0];
+foreach (var planItem in configuration.Plan)
+{
+    var applicationProcesses = GetApplicationsProcesses(planItem.Applications, planItem.Storages.Select(x=> x.Name).ToArray());
+    var storageProcesses = GetStorageProcesses(planItem.Storages);
 
-var applicationProcesses = GetApplicationsProcesses(proc.Applications, proc.Storages.Select(x=> x.Name).ToArray());
-var storageProcesses = GetStorageProcesses(proc.Storages);
+    var startTimestamp = DateTimeOffset.UtcNow;
+    var cancellationTokenSource = new CancellationTokenSource(planItem.TestDuration);
 
-
-var cancellationTokenSource = new CancellationTokenSource(proc.TestDuration);
-
-var tasks = storageProcesses
-    .Union(applicationProcesses)
-    .Select(x => Task.Run(async () =>
-    {
-        Console.WriteLine($"{x.StartInfo.FileName} {x.StartInfo.Arguments}");
-        var start = x.Start();
-        if (!start) throw new InvalidOperationException($"Process '{x.StartInfo.FileName} {x.StartInfo.Arguments}' can not be started");
-        await x.WaitForExitAsync().ConfigureAwait(false);
-        if (x.ExitCode != 0) throw new InvalidOperationException($"Process '{x.StartInfo.FileName} {x.StartInfo.Arguments}' exited with code {x.ExitCode}");
-        var containerId = (await x.StandardOutput.ReadToEndAsync().ConfigureAwait(false)).Trim();
+    var tasks = storageProcesses
+        .Union(applicationProcesses)
+        .Select(x => Task.Run(async () =>
+        {
+            Console.WriteLine($"{x.StartInfo.FileName} {x.StartInfo.Arguments}");
+            var start = x.Start();
+            if (!start) throw new InvalidOperationException($"Process '{x.StartInfo.FileName} {x.StartInfo.Arguments}' can not be started");
+            await x.WaitForExitAsync().ConfigureAwait(false);
+            if (x.ExitCode != 0) throw new InvalidOperationException($"Process '{x.StartInfo.FileName} {x.StartInfo.Arguments}' exited with code {x.ExitCode}");
+            var containerId = (await x.StandardOutput.ReadToEndAsync().ConfigureAwait(false)).Trim();
         
-        if (!cancellationTokenSource.Token.WaitHandle.WaitOne())
-            throw new InvalidOperationException($"CT problem in '{x.StartInfo.FileName} {x.StartInfo.Arguments}': WaitHandle is false");
+            if (!cancellationTokenSource.Token.WaitHandle.WaitOne())
+                throw new InvalidOperationException($"CT problem in '{x.StartInfo.FileName} {x.StartInfo.Arguments}': WaitHandle is false");
 
-        var process = new Process { StartInfo = { FileName = "docker", Arguments = $"container rm -f {containerId}" } };
-        process.Start();
-        if (!start) throw new InvalidOperationException($"Process '{process.StartInfo.FileName} {process.StartInfo.Arguments}' can not be started");
-        await process.WaitForExitAsync().ConfigureAwait(false);
-        if (process.ExitCode != 0) throw new InvalidOperationException($"Process '{x.StartInfo.FileName} {x.StartInfo.Arguments}' exited with code {x.ExitCode}");
-    }));
+            await RunFastCommandAndWait($"docker container rm -f {containerId}");
+        }));
+    
+    Task.WaitAll(tasks.ToArray());
+    var endTimestamp = DateTimeOffset.UtcNow;
 
+    if (!File.Exists(configuration.PlanExecutionsFile)) File.Create(configuration.PlanExecutionsFile);
+    await File.AppendAllLinesAsync(configuration.PlanExecutionsFile, new[] { $"{startTimestamp:O},{endTimestamp:O},{planItem.Name}" }).ConfigureAwait(false);
 
-Task.WaitAll(tasks.ToArray());
+    await Task.Delay(configuration.DelayBetweenTests).ConfigureAwait(false);
+}
 
+async Task RunFastCommandAndWait(string command)
+{
+    var fileName = command.Split(" ").First();
+    var arguments = string.Join(" ", command.Split(" ").Skip(1).ToArray());
 
+    var process = new Process { StartInfo = { FileName = fileName, Arguments = arguments } };
+    var start = process.Start();
+    if (!start) throw new InvalidOperationException($"Process '{process.StartInfo.FileName} {process.StartInfo.Arguments}' can not be started");
+    await process.WaitForExitAsync().ConfigureAwait(false);
+    if (process.ExitCode != 0) throw new InvalidOperationException($"Process '{process.StartInfo.FileName} {process.StartInfo.Arguments}' exited with code {process.ExitCode}");
+}
 
 string GetNetDockerTcLabels(NetworkParameters? parameters)
 {
     if(parameters == null) return string.Empty;
     
     var sb = new StringBuilder();
-    sb.Append("--label \"com.docker-tc.enabled=1\"");
-	if(parameters.Bandwidth == null) sb.Append($"--label \"com.docker-tc.limit={parameters.Bandwidth}\"");
-	if(parameters.DelayMs == null) sb.Append($"--label \"com.docker-tc.delay={parameters.DelayMs}ms\"");
-	if(parameters.LossPercent == null) sb.Append($"--label \"com.docker-tc.loss={parameters.LossPercent}%\"");
-	if(parameters.DuplicatePercent == null) sb.Append($"--label \"com.docker-tc.duplicate={parameters.DuplicatePercent}%\"");
-	if(parameters.CorruptPercent == null) sb.Append($"--label \"com.docker-tc.corrupt={parameters.CorruptPercent}%\"");
+    sb.Append("--label \"com.docker-tc.enabled=1\" ");
+	if(parameters.Bandwidth == null) sb.Append($"--label \"com.docker-tc.limit={parameters.Bandwidth}\" ");
+	if(parameters.DelayMs == null) sb.Append($"--label \"com.docker-tc.delay={parameters.DelayMs}ms\" ");
+	if(parameters.LossPercent == null) sb.Append($"--label \"com.docker-tc.loss={parameters.LossPercent}%\" ");
+	if(parameters.DuplicatePercent == null) sb.Append($"--label \"com.docker-tc.duplicate={parameters.DuplicatePercent}%\" ");
+	if(parameters.CorruptPercent == null) sb.Append($"--label \"com.docker-tc.corrupt={parameters.CorruptPercent}%\" ");
     return sb.ToString();
 }
 
@@ -80,7 +93,7 @@ Process[] GetStorageProcesses(DockerApplication[] applications)
 
 Process[] GetApplicationsProcesses(DockerApplication[] applications, string[] kvHosts)
 {
-    var kvEtcdHosts = string.Join(",", kvHosts.Select(x => $"{x}:2379"));
+    var kvEtcdHosts = string.Join(";", kvHosts.Select(x => $"{x}:2379"));
     return applications.Select(x => new Process
         {
             StartInfo = new ProcessStartInfo

@@ -375,3 +375,6 @@ FodyWeavers.xsd
 
 # Built Visual Studio Code Extensions
 *.vsix
+
+# Common IntelliJ Platform excludes
+**/.idea/*

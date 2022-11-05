@@ -1,7 +1,6 @@
-﻿namespace ExperimentalApplication.Payloads
+﻿namespace ExperimentalApplication.Payloads;
+
+internal interface IPayload
 {
-	internal interface IPayload
-	{
-		Task ExecuteAsync(CancellationToken cancellationToken);
-	}
+	Task ExecuteAsync(CancellationToken cancellationToken);
 }
