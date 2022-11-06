@@ -31,7 +31,7 @@ internal class LibAndCodeOperationsAnalyser
 			});
 		var query = parameters + await File.ReadAllTextAsync("Queries/QueryLibAndCodeOperationsDuration.txt").ConfigureAwait(false);
 
-		Console.WriteLine(query);
+		//Console.WriteLine(query);
 
 		var results = new List<TimeSpan>();
 
@@ -41,10 +41,10 @@ internal class LibAndCodeOperationsAnalyser
 
 			if (results.Last() > TimeSpan.FromSeconds(1))
 			{
-				Console.WriteLine(operation.TraceId);
+				//Console.WriteLine(operation.TraceId);
 			}
 
-			Console.WriteLine($"{operation.CodeDuration} | {operation.LibDuration} | {operation.LockDuration} | {operation.LibDuration - operation.LockDuration - operation.CodeDuration}");
+			//Console.WriteLine($"{operation.CodeDuration} | {operation.LibDuration} | {operation.LockDuration} | {operation.LibDuration - operation.LockDuration - operation.CodeDuration}");
 		}
 
 		results.Count.Should().NotBe(0);

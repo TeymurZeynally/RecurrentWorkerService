@@ -28,7 +28,7 @@ internal class PeriodicOperationsIntersectionAnalyser
 			});
 		var query = parameters + await File.ReadAllTextAsync("Queries/QueryOperationsTimeAndDuration.txt").ConfigureAwait(false);
 
-		Console.WriteLine(query);
+		//Console.WriteLine(query);
 			
 		var previous = default(PeriodicOperationDuration);
 

@@ -30,7 +30,7 @@ internal class PeriodicOperationsAnalyser
 			});
 		var query = parameters + await File.ReadAllTextAsync("Queries/QueryOperationsTimeAndDuration.txt").ConfigureAwait(false);
 
-		Console.WriteLine(query);
+		//Console.WriteLine(query);
 
 		var previous = default(PeriodicOperationDuration);
 		var deltas = new List<TimeSpan>();
@@ -43,7 +43,7 @@ internal class PeriodicOperationsAnalyser
 
 				deltas.Add(operation.DateTimeOffset - expectedDate);
 
-				Console.WriteLine($"{previous.DateTimeOffset} | {previous.Duration} | {expectedDate} | {operation.DateTimeOffset} | {operation.Duration}  | {deltas.Last()}");
+				//Console.WriteLine($"{previous.DateTimeOffset} | {previous.Duration} | {expectedDate} | {operation.DateTimeOffset} | {operation.Duration}  | {deltas.Last()}");
 			}
 
 

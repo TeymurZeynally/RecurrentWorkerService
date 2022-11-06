@@ -27,7 +27,7 @@ internal class PrioritiesReceiveTimestampAnalyser
 		});
 		var query = parameters + await File.ReadAllTextAsync("Queries/QueryPrioritiesReceiveTimestamp.txt").ConfigureAwait(false);
 			
-		Console.WriteLine(query);
+		//Console.WriteLine(query);
 			
 		var operations = await _queryApi.QueryAsync<PrioritiesReceiveData>(query, "TZ").ConfigureAwait(false);
 		

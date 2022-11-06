@@ -62,11 +62,11 @@ string GetNetDockerTcLabels(NetworkParameters? parameters)
     
     var sb = new StringBuilder();
     sb.Append("--label \"com.docker-tc.enabled=1\" ");
-	if(parameters.Bandwidth == null) sb.Append($"--label \"com.docker-tc.limit={parameters.Bandwidth}\" ");
-	if(parameters.DelayMs == null) sb.Append($"--label \"com.docker-tc.delay={parameters.DelayMs}ms\" ");
-	if(parameters.LossPercent == null) sb.Append($"--label \"com.docker-tc.loss={parameters.LossPercent}%\" ");
-	if(parameters.DuplicatePercent == null) sb.Append($"--label \"com.docker-tc.duplicate={parameters.DuplicatePercent}%\" ");
-	if(parameters.CorruptPercent == null) sb.Append($"--label \"com.docker-tc.corrupt={parameters.CorruptPercent}%\" ");
+	if(parameters.Bandwidth != null) sb.Append($"--label \"com.docker-tc.limit={parameters.Bandwidth}\" ");
+	if(parameters.DelayMs != null) sb.Append($"--label \"com.docker-tc.delay={parameters.DelayMs}ms\" ");
+	if(parameters.LossPercent != null) sb.Append($"--label \"com.docker-tc.loss={parameters.LossPercent}%\" ");
+	if(parameters.DuplicatePercent != null) sb.Append($"--label \"com.docker-tc.duplicate={parameters.DuplicatePercent}%\" ");
+	if(parameters.CorruptPercent != null) sb.Append($"--label \"com.docker-tc.corrupt={parameters.CorruptPercent}%\" ");
     return sb.ToString();
 }
 

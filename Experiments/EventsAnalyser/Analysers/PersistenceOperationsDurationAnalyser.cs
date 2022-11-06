@@ -26,7 +26,7 @@ internal class PersistenceOperationsDurationAnalyser
 		});
 		var query = parameters + await File.ReadAllTextAsync("Queries/QueryPersistenceOperationsDuration.txt").ConfigureAwait(false);
 
-		Console.WriteLine(query);
+		//Console.WriteLine(query);
 
 		var operations = await _queryApi.QueryAsync<PersistenceOperation>(query, "TZ").ConfigureAwait(false);
 

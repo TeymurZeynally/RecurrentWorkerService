@@ -36,30 +36,61 @@ var configurationOfWorkers = new[]
 };
 
 
-var line = lines.Last();
 
 
-
-foreach (var config in configurationOfWorkers)
+foreach (var line in lines)
 {
-	var periodicOperationsIntersectionResult = await new PeriodicOperationsIntersectionAnalyser(queryApi).Analyse(line.Interval, config.Period, config.Payload, config.Id);
-	var periodicOperationsResult = await new PeriodicOperationsAnalyser(queryApi).Analyse(line.Interval, config.Period, config.Payload, config.Id);
-	var libAndCodeOperationsAnalyserResult = await new LibAndCodeOperationsAnalyser(queryApi).Analyse(line.Interval, "DistributedRecurrentWorkerService",  config.Payload, config.Id);
+	Console.WriteLine();
+	Console.WriteLine(line.Name);
+	Console.WriteLine();	
+	
+	List<AnalysisResult> periodicOperationsReults = new List<AnalysisResult>();
+	List<AnalysisResult> libAndCodeOperationsReults = new List<AnalysisResult>();
+	foreach (var config in configurationOfWorkers)
+	{
+		var periodicOperationsIntersectionResult = await new PeriodicOperationsIntersectionAnalyser(queryApi).Analyse(line.Interval, config.Period, config.Payload, config.Id);
+		var periodicOperationsResult = await new PeriodicOperationsAnalyser(queryApi).Analyse(line.Interval, config.Period, config.Payload, config.Id);
+		var libAndCodeOperationsAnalyserResult = await new LibAndCodeOperationsAnalyser(queryApi).Analyse(line.Interval, "DistributedRecurrentWorkerService",  config.Payload, config.Id);
 
-	periodicOperationsIntersectionResult.Should().BeTrue();
-	Print(periodicOperationsResult);
-	Print(libAndCodeOperationsAnalyserResult);
+		periodicOperationsIntersectionResult.Should().BeTrue();
+		periodicOperationsReults.Add(periodicOperationsResult);
+		libAndCodeOperationsReults.Add(libAndCodeOperationsAnalyserResult);
+	}
+
+	PrintCsv("PeriodicOperations", periodicOperationsReults.ToArray());
+	Console.WriteLine();
+	PrintCsv("LibAndCodeOperations", libAndCodeOperationsReults.ToArray());
+	Console.WriteLine();
+
+	var persistenceOperationsDurationResults = await new PersistenceOperationsDurationAnalyser(queryApi).Analyse(line.Interval);
+	PrintCsv("PersistenceOperationsDuration", persistenceOperationsDurationResults);
+	Console.WriteLine();
+
+	var prioritiesReceiveTimestampResult = await new PrioritiesReceiveTimestampAnalyser(queryApi).Analyse(line.Interval, "UpdatePriorityInformation");
+	PrintCsv("PrioritiesReceive", prioritiesReceiveTimestampResult);
+	Console.WriteLine();
+
 }
 
-var persistenceOperationsDurationResults = await new PersistenceOperationsDurationAnalyser(queryApi).Analyse(line.Interval);
 
-foreach (var result in persistenceOperationsDurationResults)
+void PrintCsv(string name, params AnalysisResult[] analysisResults)
 {
-	Print(result);
+	Console.WriteLine("Name,Parameter,Count,Max,Mean,MeanErrorless,StandardDeviation,Variance,Error,Errors");
+	foreach (var analysisResult in analysisResults)
+	{
+		Console.Write(name + ",");
+		Console.Write(analysisResult.Parameter + ",");
+		Console.Write(TimeSpanHelper.FromNanoseconds(analysisResult.Count) + ",");
+		Console.Write(TimeSpanHelper.FromNanoseconds(analysisResult.Max) + ",");
+		Console.Write(TimeSpanHelper.FromNanoseconds(analysisResult.Mean) + ",");
+		Console.Write(TimeSpanHelper.FromNanoseconds(analysisResult.MeanErrorless) + ",");
+		Console.Write(TimeSpanHelper.FromNanoseconds(analysisResult.StandardDeviation) + ",");
+		Console.Write(analysisResult.Variance + ",");
+		Console.Write(TimeSpanHelper.FromNanoseconds(analysisResult.Error) + ",");
+		Console.Write(analysisResult.Errors.Count);
+		Console.WriteLine();
+	}
 }
-
-var prioritiesReceiveTimestampResult = await new PrioritiesReceiveTimestampAnalyser(queryApi).Analyse(line.Interval, "UpdatePriorityInformation");
-Print(prioritiesReceiveTimestampResult);
 
 
 void Print(AnalysisResult analysisResult)
