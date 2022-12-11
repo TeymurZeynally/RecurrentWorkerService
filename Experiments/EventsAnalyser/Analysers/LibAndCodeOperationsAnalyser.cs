@@ -1,8 +1,6 @@
 ﻿using EventsAnalyser.Builders;
 using EventsAnalyser.Calculators;
 using EventsAnalyser.Calculators.Models;
-using EventsAnalyser.Helpers;
-using EventsAnalyser.Queries;
 using EventsAnalyser.Queries.Models;
 using FluentAssertions;
 using InfluxDB.Client;
@@ -34,8 +32,11 @@ internal class LibAndCodeOperationsAnalyser
 		//Console.WriteLine(query);
 
 		var results = new List<TimeSpan>();
+		var data = await Cache.Cache.Get<LibAndCodeOperationsDuration>(
+			query,
+			async () => await _queryApi.QueryAsync<LibAndCodeOperationsDuration>(query, "KSS")).ConfigureAwait(false);
 
-		await foreach (var operation in _queryApi.QueryAsyncEnumerable<LibAndCodeOperationsDuration>(query, "TZ").ConfigureAwait(false))
+		foreach (var operation in data)
 		{
 			results.Add(operation.LibDuration - operation.LockDuration - operation.CodeDuration);
 
@@ -49,6 +50,6 @@ internal class LibAndCodeOperationsAnalyser
 
 		results.Count.Should().NotBe(0);
 		
-		return AnalysisResultCalculator.Calculate(identity, results.Select(v => ((double)TimeSpanHelper.ToNanoseconds(v), string.Empty)).ToArray());
+		return AnalysisResultCalculator.Calculate(identity, results.Select(v => (v.TotalNanoseconds, string.Empty)).ToArray());
 	}
 }

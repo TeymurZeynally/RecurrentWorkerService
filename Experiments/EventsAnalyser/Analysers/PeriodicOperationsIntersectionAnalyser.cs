@@ -1,5 +1,4 @@
 ﻿using EventsAnalyser.Builders;
-using EventsAnalyser.Queries;
 using EventsAnalyser.Queries.Models;
 using FluentAssertions;
 using InfluxDB.Client;
@@ -28,11 +27,15 @@ internal class PeriodicOperationsIntersectionAnalyser
 			});
 		var query = parameters + await File.ReadAllTextAsync("Queries/QueryOperationsTimeAndDuration.txt").ConfigureAwait(false);
 
-		//Console.WriteLine(query);
+		Console.WriteLine(query);
 			
 		var previous = default(PeriodicOperationDuration);
 
-		await foreach (var operation in _queryApi.QueryAsyncEnumerable<PeriodicOperationDuration>(query, "TZ").ConfigureAwait(false))
+		var data = await Cache.Cache.Get<PeriodicOperationDuration>(
+			query,
+			async () => await _queryApi.QueryAsync<PeriodicOperationDuration>(query, "KSS")).ConfigureAwait(false);
+
+		foreach (var operation in data)
 		{
 			if (previous != null)
 			{

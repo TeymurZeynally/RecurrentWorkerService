@@ -1,4 +1,5 @@
-﻿using EventsAnalyser.Analysers;
+﻿using System.Text;
+using EventsAnalyser.Analysers;
 using EventsAnalyser.Calculators.Models;
 using EventsAnalyser.Helpers;
 using EventsAnalyser.Queries.Models;
@@ -7,13 +8,12 @@ using InfluxDB.Client;
 
 using Interval = EventsAnalyser.Queries.Models.Interval;
 
-var planExecutionsFile = @"/home/teymur/Desktop/Dashboard/ExecutionFiles.csv";
+var planExecutionsFile = @"c:/Users/Zeynally_T/Desktop/University/Project/ExperimentRuns.csv";
 
 var lines = (await File.ReadAllLinesAsync(planExecutionsFile).ConfigureAwait(false))
 	.Select(x => x.Split(","))
 	.Select(x => (Interval: new Interval(){ StartTimeStamp = DateTimeOffset.Parse(x[0]), EndTimeStamp = DateTimeOffset.Parse(x[1]) }, Name: x[2]))
 	.ToArray();
-
 
 var options = new InfluxDBClientOptions.Builder()
 	.Url("http://localhost:8086")
@@ -44,8 +44,10 @@ foreach (var line in lines)
 	Console.WriteLine(line.Name);
 	Console.WriteLine();	
 	
-	List<AnalysisResult> periodicOperationsReults = new List<AnalysisResult>();
-	List<AnalysisResult> libAndCodeOperationsReults = new List<AnalysisResult>();
+	var periodicOperationsReults = new List<AnalysisResult>();
+	var libAndCodeOperationsReults = new List<AnalysisResult>();
+	var periodicOperationsIntersectionResults = new List<(string Name, bool IsValid)>();
+
 	foreach (var config in configurationOfWorkers)
 	{
 		var periodicOperationsIntersectionResult = await new PeriodicOperationsIntersectionAnalyser(queryApi).Analyse(line.Interval, config.Period, config.Payload, config.Id);
@@ -53,43 +55,82 @@ foreach (var line in lines)
 		var libAndCodeOperationsAnalyserResult = await new LibAndCodeOperationsAnalyser(queryApi).Analyse(line.Interval, "DistributedRecurrentWorkerService",  config.Payload, config.Id);
 
 		periodicOperationsIntersectionResult.Should().BeTrue();
+		periodicOperationsIntersectionResults.Add((config.Id, periodicOperationsIntersectionResult));
 		periodicOperationsReults.Add(periodicOperationsResult);
 		libAndCodeOperationsReults.Add(libAndCodeOperationsAnalyserResult);
 	}
 
-	PrintCsv("PeriodicOperations", periodicOperationsReults.ToArray());
+
+	PrintOperationsIntersectionCsv(line.Name, "PeriodicOperationsIntersection", periodicOperationsIntersectionResults);
+
+	PrintCsv(line.Name, "PeriodicOperations", periodicOperationsReults.ToArray());
 	Console.WriteLine();
-	PrintCsv("LibAndCodeOperations", libAndCodeOperationsReults.ToArray());
+	PrintCsv(line.Name, "LibAndCodeOperations", libAndCodeOperationsReults.ToArray());
 	Console.WriteLine();
 
 	var persistenceOperationsDurationResults = await new PersistenceOperationsDurationAnalyser(queryApi).Analyse(line.Interval);
-	PrintCsv("PersistenceOperationsDuration", persistenceOperationsDurationResults);
+	PrintCsv(line.Name, "PersistenceOperationsDuration", persistenceOperationsDurationResults);
 	Console.WriteLine();
 
 	var prioritiesReceiveTimestampResult = await new PrioritiesReceiveTimestampAnalyser(queryApi).Analyse(line.Interval, "UpdatePriorityInformation");
-	PrintCsv("PrioritiesReceive", prioritiesReceiveTimestampResult);
+	PrintCsv(line.Name, "PrioritiesReceive", prioritiesReceiveTimestampResult);
 	Console.WriteLine();
 
 }
 
-
-void PrintCsv(string name, params AnalysisResult[] analysisResults)
+void PrintOperationsIntersectionCsv(string experiment, string name, IList<(string Id, bool isValid)> results)
 {
-	Console.WriteLine("Name,Parameter,Count,Max,Mean,MeanErrorless,StandardDeviation,Variance,Error,Errors");
+	var fileName = "periodicOperationsValidationResults.csv";
+	if (!File.Exists(fileName))
+	{
+		File.WriteAllLines(fileName, new[] { "Experiment,Name,Id,IsValid" });
+	}
+
+	var lines = new List<string>();
+	foreach (var result in results)
+	{
+		var lineBuilder = new StringBuilder();
+		lineBuilder.Append(experiment + ",");
+		lineBuilder.Append(name + ",");
+		lineBuilder.Append(result.Id + ",");
+		lineBuilder.Append(result.isValid);
+		lines.Add(lineBuilder.ToString());
+		Console.WriteLine(lines.Last());
+	}
+
+	File.AppendAllLines(fileName, lines);
+}
+
+
+void PrintCsv(string experiment, string name, params AnalysisResult[] analysisResults)
+{
+	var fileName = "output.csv";
+	if (!File.Exists(fileName))
+	{
+		File.WriteAllLines(fileName, new[] { "Experiment,Name,Parameter,Count,Max,Mean,MeanErrorless,StandardDeviation,Variance,Error,Errors" });
+	}
+
+	var lines = new List<string>();
 	foreach (var analysisResult in analysisResults)
 	{
-		Console.Write(name + ",");
-		Console.Write(analysisResult.Parameter + ",");
-		Console.Write(TimeSpanHelper.FromNanoseconds(analysisResult.Count) + ",");
-		Console.Write(TimeSpanHelper.FromNanoseconds(analysisResult.Max) + ",");
-		Console.Write(TimeSpanHelper.FromNanoseconds(analysisResult.Mean) + ",");
-		Console.Write(TimeSpanHelper.FromNanoseconds(analysisResult.MeanErrorless) + ",");
-		Console.Write(TimeSpanHelper.FromNanoseconds(analysisResult.StandardDeviation) + ",");
-		Console.Write(analysisResult.Variance + ",");
-		Console.Write(TimeSpanHelper.FromNanoseconds(analysisResult.Error) + ",");
-		Console.Write(analysisResult.Errors.Count);
-		Console.WriteLine();
+		var lineBuilder = new StringBuilder();
+		lineBuilder.Append(experiment + ",");
+		lineBuilder.Append(name + ",");
+		lineBuilder.Append(analysisResult.Parameter + ",");
+		lineBuilder.Append(analysisResult.Count + ",");
+		lineBuilder.Append(analysisResult.Max + ",");
+		lineBuilder.Append(analysisResult.Mean + ",");
+		lineBuilder.Append(analysisResult.MeanErrorless + ",");
+		lineBuilder.Append(analysisResult.StandardDeviation + ",");
+		lineBuilder.Append(analysisResult.Variance + ",");
+		lineBuilder.Append(analysisResult.Error + ",");
+		lineBuilder.Append(analysisResult.Errors.Count);
+
+		lines.Add(lineBuilder.ToString());
+		Console.WriteLine(lines.Last());
 	}
+
+	File.AppendAllLines(fileName, lines);
 }
 
 

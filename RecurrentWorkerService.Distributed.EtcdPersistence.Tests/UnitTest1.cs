@@ -22,9 +22,9 @@ public class UnitTest1
 	{
 		var factory = new StaticResolverFactory(addr => new[]
 		{
-			new BalancerAddress("10.16.17.139", 12379),
-			new BalancerAddress("10.16.17.139", 22379),
-			new BalancerAddress("10.16.17.139", 32379),
+			new BalancerAddress("10.16.17.139", 23791),
+			new BalancerAddress("10.16.17.139", 23792),
+			new BalancerAddress("10.16.17.139", 23793),
 		});
 
 		var channel = GrpcChannel.ForAddress(
@@ -58,6 +58,17 @@ public class UnitTest1
 	}
 
 
+
+
+	[TestMethod]
+	public async Task TestMethod2()
+	{
+		await _persistence.HeartbeatAsync(TimeSpan.FromSeconds(10), CancellationToken.None);
+		await _persistence.AcquireExecutionLockAsync("ID", CancellationToken.None);
+
+
+
+	}
 
 	[TestMethod]
 	public async Task TestMethod1()

@@ -1,7 +1,6 @@
 ﻿using EventsAnalyser.Builders;
 using EventsAnalyser.Calculators;
 using EventsAnalyser.Calculators.Models;
-using EventsAnalyser.Helpers;
 using EventsAnalyser.Queries.Models;
 using FluentAssertions;
 using InfluxDB.Client;
@@ -29,19 +28,20 @@ internal class PrioritiesReceiveTimestampAnalyser
 			
 		//Console.WriteLine(query);
 			
-		var operations = await _queryApi.QueryAsync<PrioritiesReceiveData>(query, "TZ").ConfigureAwait(false);
-		
+		var operations = await Cache.Cache.Get<PrioritiesReceiveData>(
+			query,
+			async () => await _queryApi.QueryAsync<PrioritiesReceiveData>(query, "KSS")).ConfigureAwait(false);
+
 		operations.Count.Should().NotBe(0);
 		
 		return AnalysisResultCalculator.Calculate(
 			priorityOperationName,
 			operations.GroupBy(x => x.PriorityEventId)
-				.Select(v => ((double)GetMaxDelta(v.ToArray()), v.Key)).ToArray());
+				.Select(v => ((double)GetMaxDeltaNanoseconds(v.ToArray()), v.Key)).ToArray());
 	}
 
-	private long GetMaxDelta(PrioritiesReceiveData[] data)
+	private long GetMaxDeltaNanoseconds(PrioritiesReceiveData[] data)
 	{
-		//Console.WriteLine(data.Length);
 		long max = 0;
 		for (int i = 0; i < data.Length; i++)
 		for (int j = 0; j < data.Length; j++)
@@ -53,9 +53,7 @@ internal class PrioritiesReceiveTimestampAnalyser
 					max = diff;
 				}
 			}
-			
-		//Console.WriteLine($"{TimeSpan.FromTicks(max)} {TimeSpanHelper.FromNanoseconds(TimeSpanHelper.ToNanoseconds(max))}");
 
-		return TimeSpanHelper.ToNanoseconds(max);
+		return max * TimeSpan.NanosecondsPerTick;
 	}
 }

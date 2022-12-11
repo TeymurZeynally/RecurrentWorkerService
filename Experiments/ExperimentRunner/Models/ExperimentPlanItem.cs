@@ -2,11 +2,11 @@ namespace ExperimentRunner.Models;
 
 public class ExperimentPlanItem
 {
-    public string Name { get; init; }
+    public string Name { get; init; } = default!;
     
-    public TimeSpan TestDuration { get; init; }
+    public TimeSpan TestDuration { get; init; } = default!;
     
-    public DockerApplication[] Storages { get; init; }
+    public DockerApplication[] Storages { get; init; } = default!;
     
-    public DockerApplication[] Applications { get; init; }
+    public DockerApplication[] Applications { get; init; } = default!;
 }

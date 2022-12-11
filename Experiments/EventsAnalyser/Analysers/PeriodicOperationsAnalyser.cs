@@ -1,7 +1,6 @@
 ﻿using EventsAnalyser.Builders;
 using EventsAnalyser.Calculators;
 using EventsAnalyser.Calculators.Models;
-using EventsAnalyser.Helpers;
 using EventsAnalyser.Queries.Models;
 using FluentAssertions;
 using InfluxDB.Client;
@@ -35,7 +34,11 @@ internal class PeriodicOperationsAnalyser
 		var previous = default(PeriodicOperationDuration);
 		var deltas = new List<TimeSpan>();
 
-		await foreach (var operation in _queryApi.QueryAsyncEnumerable<PeriodicOperationDuration>(query, "TZ").ConfigureAwait(false))
+		var data = await Cache.Cache.Get<PeriodicOperationDuration>(
+			query,
+			async () => await _queryApi.QueryAsync<PeriodicOperationDuration>(query, "KSS")).ConfigureAwait(false);
+
+		foreach (var operation in data)
 		{
 			if (previous != null)
 			{
@@ -53,6 +56,6 @@ internal class PeriodicOperationsAnalyser
 		deltas.Count.Should().NotBe(0);
 		
 		
-		return AnalysisResultCalculator.Calculate(identity, deltas.Select(v => ((double)TimeSpanHelper.ToNanoseconds(v), string.Empty)).ToArray());
+		return AnalysisResultCalculator.Calculate(identity, deltas.Select(v => (v.TotalNanoseconds, string.Empty)).ToArray());
 	}
 }

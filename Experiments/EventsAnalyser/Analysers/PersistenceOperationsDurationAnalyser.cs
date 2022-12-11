@@ -1,7 +1,6 @@
 ﻿using EventsAnalyser.Builders;
 using EventsAnalyser.Calculators;
 using EventsAnalyser.Calculators.Models;
-using EventsAnalyser.Queries;
 using EventsAnalyser.Queries.Models;
 using FluentAssertions;
 using InfluxDB.Client;
@@ -28,7 +27,9 @@ internal class PersistenceOperationsDurationAnalyser
 
 		//Console.WriteLine(query);
 
-		var operations = await _queryApi.QueryAsync<PersistenceOperation>(query, "TZ").ConfigureAwait(false);
+		var operations = await Cache.Cache.Get<PersistenceOperation>(
+			query,
+			async () => await _queryApi.QueryAsync<PersistenceOperation>(query, "KSS")).ConfigureAwait(false);
 
 		operations.Count.Should().NotBe(0);
 		

@@ -7,8 +7,8 @@ using Microsoft.Extensions.Configuration;
 var configuration = new ConfigurationBuilder().AddJsonFile($"appsettings.json").Build().Get<Configuration>();
 
 await RunFastCommandAndWait($"docker container rm -f etcd_events_collector");
-var kvEtcdHosts = string.Join(";", configuration.Plan.SelectMany(x => x.Storages.Select(k => k.Name)).Distinct().Select(x => $"{x}:2379").ToArray());
-await RunFastCommandAndWait($"docker run -d --name etcd_events_collector --network experiment -e EXPERIMENT_ETCD_HOSTS={kvEtcdHosts} etcd_events_collector");
+var kvEtcdHosts = string.Join(";", configuration!.Plan.SelectMany(x => x.Storages.Select(k => k.Name)).Distinct().Select(x => $"{x}:2379").ToArray());
+await RunFastCommandAndWait($"docker run -d --name etcd_events_collector --network experiment -v /home/teymur/Desktop/Dashboard/DockerInfluxLineFilesVolume:/influx -e EXPERIMENT_ETCD_HOSTS={kvEtcdHosts} etcd_events_collector");
 
 foreach (var planItem in configuration.Plan)
 {
@@ -99,7 +99,7 @@ Process[] GetApplicationsProcesses(DockerApplication[] applications, string[] kv
             StartInfo = new ProcessStartInfo
             {
                 FileName = "docker",
-                Arguments = $"run -d --name={x.Name} --network experiment {GetNetDockerTcLabels(x.NetworkSettings)} -e EXPERIMENT_ENV=docker -e EXPERIMENT_ETCD_HOSTS={kvEtcdHosts} experimental_application",
+                Arguments = $"run -d --name={x.Name} --network experiment {GetNetDockerTcLabels(x.NetworkSettings)} -v /home/teymur/Desktop/Dashboard/DockerInfluxLineFilesVolume:/influx -e EXPERIMENT_ENV=docker -e EXPERIMENT_ETCD_HOSTS={kvEtcdHosts} experimental_application",
                 UseShellExecute = false,
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,

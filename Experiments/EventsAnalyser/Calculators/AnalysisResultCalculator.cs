@@ -1,5 +1,4 @@
-﻿using System.Security.Cryptography.X509Certificates;
-using EventsAnalyser.Calculators.Models;
+﻿using EventsAnalyser.Calculators.Models;
 using MathNet.Numerics.Statistics;
 
 namespace EventsAnalyser.Calculators;
