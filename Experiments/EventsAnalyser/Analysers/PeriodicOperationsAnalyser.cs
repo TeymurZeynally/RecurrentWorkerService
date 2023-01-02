@@ -36,7 +36,7 @@ internal class PeriodicOperationsAnalyser
 
 		var data = await Cache.Cache.Get<PeriodicOperationDuration>(
 			query,
-			async () => await _queryApi.QueryAsync<PeriodicOperationDuration>(query, "KSS")).ConfigureAwait(false);
+			async () => await _queryApi.QueryAsync<PeriodicOperationDuration>(query, "TZ")).ConfigureAwait(false);
 
 		foreach (var operation in data)
 		{

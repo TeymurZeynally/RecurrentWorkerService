@@ -29,7 +29,7 @@ internal class PersistenceOperationsDurationAnalyser
 
 		var operations = await Cache.Cache.Get<PersistenceOperation>(
 			query,
-			async () => await _queryApi.QueryAsync<PersistenceOperation>(query, "KSS")).ConfigureAwait(false);
+			async () => await _queryApi.QueryAsync<PersistenceOperation>(query, "TZ")).ConfigureAwait(false);
 
 		operations.Count.Should().NotBe(0);
 		

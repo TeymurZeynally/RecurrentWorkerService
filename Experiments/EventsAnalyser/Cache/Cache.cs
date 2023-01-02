@@ -22,6 +22,12 @@ namespace EventsAnalyser.Cache
 			}
 
 			var result = await function().ConfigureAwait(false);
+
+			if (!Path.Exists(cacheFile))
+			{
+				Directory.CreateDirectory(Path.GetDirectoryName(cacheFile)!);
+			}
+			
 			await File.WriteAllTextAsync(cacheFile, JsonConvert.SerializeObject(result)).ConfigureAwait(false);
 			return result;
 		}

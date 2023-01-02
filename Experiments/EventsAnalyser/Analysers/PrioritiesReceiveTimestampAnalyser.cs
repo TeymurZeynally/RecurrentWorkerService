@@ -30,7 +30,7 @@ internal class PrioritiesReceiveTimestampAnalyser
 			
 		var operations = await Cache.Cache.Get<PrioritiesReceiveData>(
 			query,
-			async () => await _queryApi.QueryAsync<PrioritiesReceiveData>(query, "KSS")).ConfigureAwait(false);
+			async () => await _queryApi.QueryAsync<PrioritiesReceiveData>(query, "TZ")).ConfigureAwait(false);
 
 		operations.Count.Should().NotBe(0);
 		

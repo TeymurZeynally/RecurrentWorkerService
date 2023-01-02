@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Runtime.InteropServices;
+using System.Text;
 using EventsAnalyser.Analysers;
 using EventsAnalyser.Calculators.Models;
 using EventsAnalyser.Helpers;
@@ -8,7 +9,7 @@ using InfluxDB.Client;
 
 using Interval = EventsAnalyser.Queries.Models.Interval;
 
-var planExecutionsFile = @"c:/Users/Zeynally_T/Desktop/University/Project/ExperimentRuns.csv";
+var planExecutionsFile = @"/home/teymur/Desktop/Dashboard/ExperimentRuns.csv";
 
 var lines = (await File.ReadAllLinesAsync(planExecutionsFile).ConfigureAwait(false))
 	.Select(x => x.Split(","))
@@ -16,8 +17,8 @@ var lines = (await File.ReadAllLinesAsync(planExecutionsFile).ConfigureAwait(fal
 	.ToArray();
 
 var options = new InfluxDBClientOptions.Builder()
-	.Url("http://localhost:8086")
-	.AuthenticateToken(@"S05hCwUie9qDicNHHQAJoGfrIH6tzOapmZjHKQLdvgBR-_fR3nQnwUUd5rzriRceNAZO5kclNymCSpvnmSI6lA==")
+	.Url("http://192.168.1.64:8086")
+	.AuthenticateToken(@"doJ2H3JHovP2lKYSTUq4gY3PitkM47fu2l11NApIvqGdBT6h_99NhHxgCOIgTWzOX05vQRdbCN3Vaj3PsHouvg==")
 	.TimeOut(TimeSpan.FromMinutes(10))
 	.Build();
 var influxDbClient = InfluxDBClientFactory.Create(options);
@@ -101,7 +102,6 @@ void PrintOperationsIntersectionCsv(string experiment, string name, IList<(strin
 	File.AppendAllLines(fileName, lines);
 }
 
-
 void PrintCsv(string experiment, string name, params AnalysisResult[] analysisResults)
 {
 	var fileName = "output.csv";
@@ -118,12 +118,12 @@ void PrintCsv(string experiment, string name, params AnalysisResult[] analysisRe
 		lineBuilder.Append(name + ",");
 		lineBuilder.Append(analysisResult.Parameter + ",");
 		lineBuilder.Append(analysisResult.Count + ",");
-		lineBuilder.Append(analysisResult.Max + ",");
-		lineBuilder.Append(analysisResult.Mean + ",");
-		lineBuilder.Append(analysisResult.MeanErrorless + ",");
-		lineBuilder.Append(analysisResult.StandardDeviation + ",");
-		lineBuilder.Append(analysisResult.Variance + ",");
-		lineBuilder.Append(analysisResult.Error + ",");
+		lineBuilder.Append(analysisResult.Max.ToString("F50").TrimEnd('0').TrimEnd('.')+ ",");
+		lineBuilder.Append(analysisResult.Mean.ToString("F50").TrimEnd('0').TrimEnd('.')+ ",");
+		lineBuilder.Append(analysisResult.MeanErrorless.ToString("F50").TrimEnd('0').TrimEnd('.')+ ",");
+		lineBuilder.Append(analysisResult.StandardDeviation.ToString("F50").TrimEnd('0').TrimEnd('.')+ ",");
+		lineBuilder.Append(analysisResult.Variance.ToString("F50").TrimEnd('0').TrimEnd('.')+ ",");
+		lineBuilder.Append(analysisResult.Error.ToString("F50").TrimEnd('0').TrimEnd('.')+ ",");
 		lineBuilder.Append(analysisResult.Errors.Count);
 
 		lines.Add(lineBuilder.ToString());

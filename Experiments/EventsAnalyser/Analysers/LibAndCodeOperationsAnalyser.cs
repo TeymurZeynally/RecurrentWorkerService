@@ -34,7 +34,7 @@ internal class LibAndCodeOperationsAnalyser
 		var results = new List<TimeSpan>();
 		var data = await Cache.Cache.Get<LibAndCodeOperationsDuration>(
 			query,
-			async () => await _queryApi.QueryAsync<LibAndCodeOperationsDuration>(query, "KSS")).ConfigureAwait(false);
+			async () => await _queryApi.QueryAsync<LibAndCodeOperationsDuration>(query, "TZ")).ConfigureAwait(false);
 
 		foreach (var operation in data)
 		{
