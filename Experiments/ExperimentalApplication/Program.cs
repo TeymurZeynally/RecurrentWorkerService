@@ -220,7 +220,8 @@ await Host.CreateDefaultBuilder(args)
 						.SetStrategies(c => c
 							.Add(Workload.Zero, TimeSpan.FromSeconds(1))
 							.Subtract(Workload.FromPercent(50), TimeSpan.FromSeconds(1))));
-			})
+			},
+			x => x.SetHeartbeatExpirationTimeout(TimeSpan.FromSeconds(512)))
 			.AddEtcdPersistence(channel)
 			.AddBasicPrioritization();
 	})

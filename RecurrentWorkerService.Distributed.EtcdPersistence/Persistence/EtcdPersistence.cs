@@ -45,7 +45,7 @@ internal class EtcdPersistence: IPersistence
 		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityTags);
 
 		var lease = await _leaseClient.LeaseGrantAsync(
-			new LeaseGrantRequest { TTL = (long)lifetime.TotalSeconds },
+			new LeaseGrantRequest { TTL = (long)lifetime.TotalSeconds + 512 },
 			cancellationToken: cancellationToken);
 		var response = await _kvClient.PutAsync(
 			new PutRequest { Key = ByteString.CopyFromUtf8(GetKeyForSucceededIteration(identity, scheduleIndex)), Lease = lease.ID},
