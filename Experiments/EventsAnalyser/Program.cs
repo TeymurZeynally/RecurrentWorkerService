@@ -9,7 +9,7 @@ using InfluxDB.Client;
 
 using Interval = EventsAnalyser.Queries.Models.Interval;
 
-var planExecutionsFile = @"/home/teymur/Desktop/Dashboard/ExperimentRuns.csv";
+var planExecutionsFile = @"D:\Users\Teymur\Desktop\Dashboard\ExperimentRuns.csv";
 
 var lines = (await File.ReadAllLinesAsync(planExecutionsFile).ConfigureAwait(false))
 	.Select(x => x.Split(","))
@@ -34,16 +34,37 @@ var configurationOfWorkers = new[]
 	(Id: "Recurrent-Immediate", Payload: PayloadType.Immediate, Period: TimeSpan.FromTicks(1)),
 	(Id: "Recurrent-Fast", Payload: PayloadType.Fast, Period: TimeSpan.FromSeconds(1)),
 	(Id: "Recurrent-Slow", Payload: PayloadType.Slow, Period: TimeSpan.FromSeconds(1)),
+	(Id: "Workload-Immediate", Payload: PayloadType.Immediate, Period: default(TimeSpan?)),
+	(Id: "Workload-Fast", Payload: PayloadType.Fast, Period: default(TimeSpan?)),
+	(Id: "Workload-Slow", Payload: PayloadType.Slow, Period: default(TimeSpan?)),
 };
-
-
-
 
 foreach (var line in lines)
 {
 	Console.WriteLine();
 	Console.WriteLine(line.Name);
-	Console.WriteLine();	
+	Console.WriteLine();
+
+	var excludeList = new string[] {
+//		"Test 5.3: Storage delay 500ms",
+//		"Test 5.4: Storage delay 700ms",
+//		"Test 5.5: Storage delay 900ms",
+//		"Test 5.6: Storage delay 1100ms",
+//		"Test 8.3: Storage loss percent 50%",
+//		"Test 14.3: Storage corrupt percent 50%"
+	};
+
+	var excludeAssertOperationsIntersection = new string[] {
+//		"Test 7.2: App loss percent 30%",
+//		"Test 7.3: App loss percent 50%",
+//		"Test 9.2: App loss percent 50% on two nodes",
+//		"Test 13.2: App corrupt percent 30%",
+//		"Test 13.3: App corrupt percent 50%",
+//		"Test 15.1: App corrupt percent 50% on one node",
+//		"Test 15.2: App corrupt percent 50% on twp nodes"
+	};
+
+	if (excludeList.Contains(line.Name)) continue;
 	
 	var periodicOperationsReults = new List<AnalysisResult>();
 	var libAndCodeOperationsReults = new List<AnalysisResult>();
@@ -51,13 +72,17 @@ foreach (var line in lines)
 
 	foreach (var config in configurationOfWorkers)
 	{
-		var periodicOperationsIntersectionResult = await new PeriodicOperationsIntersectionAnalyser(queryApi).Analyse(line.Interval, config.Period, config.Payload, config.Id);
-		var periodicOperationsResult = await new PeriodicOperationsAnalyser(queryApi).Analyse(line.Interval, config.Period, config.Payload, config.Id);
-		var libAndCodeOperationsAnalyserResult = await new LibAndCodeOperationsAnalyser(queryApi).Analyse(line.Interval, "DistributedRecurrentWorkerService",  config.Payload, config.Id);
+		var periodicOperationsIntersectionResult = await new PeriodicOperationsIntersectionAnalyser(queryApi).Analyse(line.Interval, config.Payload, config.Id);
+		var libAndCodeOperationsAnalyserResult = await new LibAndCodeOperationsAnalyser(queryApi).Analyse(line.Interval, "DistributedRecurrentWorkerService", config.Payload, config.Id);
 
-		periodicOperationsIntersectionResult.Should().BeTrue();
+		if(config.Period != null)
+		{
+			var periodicOperationsResult = await new PeriodicOperationsAnalyser(queryApi).Analyse(line.Interval, config.Period.Value, config.Payload, config.Id);
+			periodicOperationsReults.Add(periodicOperationsResult);
+		}
+
+		if (!excludeAssertOperationsIntersection.Contains(line.Name)) periodicOperationsIntersectionResult.Should().BeTrue();
 		periodicOperationsIntersectionResults.Add((config.Id, periodicOperationsIntersectionResult));
-		periodicOperationsReults.Add(periodicOperationsResult);
 		libAndCodeOperationsReults.Add(libAndCodeOperationsAnalyserResult);
 	}
 
@@ -81,7 +106,7 @@ foreach (var line in lines)
 
 void PrintOperationsIntersectionCsv(string experiment, string name, IList<(string Id, bool isValid)> results)
 {
-	var fileName = "periodicOperationsValidationResults.csv";
+	var fileName = "ValidationResults.csv";
 	if (!File.Exists(fileName))
 	{
 		File.WriteAllLines(fileName, new[] { "Experiment,Name,Id,IsValid" });
@@ -94,7 +119,7 @@ void PrintOperationsIntersectionCsv(string experiment, string name, IList<(strin
 		lineBuilder.Append(experiment + ",");
 		lineBuilder.Append(name + ",");
 		lineBuilder.Append(result.Id + ",");
-		lineBuilder.Append(result.isValid);
+		lineBuilder.Append(result.isValid ? 1 : 0);
 		lines.Add(lineBuilder.ToString());
 		Console.WriteLine(lines.Last());
 	}
@@ -104,7 +129,7 @@ void PrintOperationsIntersectionCsv(string experiment, string name, IList<(strin
 
 void PrintCsv(string experiment, string name, params AnalysisResult[] analysisResults)
 {
-	var fileName = "output.csv";
+	var fileName = "AnalysisResults.csv";
 	if (!File.Exists(fileName))
 	{
 		File.WriteAllLines(fileName, new[] { "Experiment,Name,Parameter,Count,Max,Mean,MeanErrorless,StandardDeviation,Variance,Error,Errors" });
@@ -113,17 +138,17 @@ void PrintCsv(string experiment, string name, params AnalysisResult[] analysisRe
 	var lines = new List<string>();
 	foreach (var analysisResult in analysisResults)
 	{
+		//.ToString("F50").TrimEnd('0').TrimEnd('.')
 		var lineBuilder = new StringBuilder();
 		lineBuilder.Append(experiment + ",");
 		lineBuilder.Append(name + ",");
 		lineBuilder.Append(analysisResult.Parameter + ",");
 		lineBuilder.Append(analysisResult.Count + ",");
-		lineBuilder.Append(analysisResult.Max.ToString("F50").TrimEnd('0').TrimEnd('.')+ ",");
-		lineBuilder.Append(analysisResult.Mean.ToString("F50").TrimEnd('0').TrimEnd('.')+ ",");
-		lineBuilder.Append(analysisResult.MeanErrorless.ToString("F50").TrimEnd('0').TrimEnd('.')+ ",");
-		lineBuilder.Append(analysisResult.StandardDeviation.ToString("F50").TrimEnd('0').TrimEnd('.')+ ",");
-		lineBuilder.Append(analysisResult.Variance.ToString("F50").TrimEnd('0').TrimEnd('.')+ ",");
-		lineBuilder.Append(analysisResult.Error.ToString("F50").TrimEnd('0').TrimEnd('.')+ ",");
+		lineBuilder.Append(analysisResult.Max + ",");
+		lineBuilder.Append(analysisResult.Mean + ",");
+		lineBuilder.Append(analysisResult.MeanErrorless + ",");
+		lineBuilder.Append(analysisResult.StandardDeviation + ",");
+		lineBuilder.Append(analysisResult.Variance + ",");
 		lineBuilder.Append(analysisResult.Errors.Count);
 
 		lines.Add(lineBuilder.ToString());
@@ -143,7 +168,6 @@ void Print(AnalysisResult analysisResult)
 	Console.WriteLine(@$"MeanErrorless: {TimeSpanHelper.FromNanoseconds(analysisResult.MeanErrorless)}");
 	Console.WriteLine(@$"StandardDeviation: {TimeSpanHelper.FromNanoseconds(analysisResult.StandardDeviation)}");
 	Console.WriteLine(@$"Variance: {analysisResult.Variance}");
-	Console.WriteLine(@$"Error: {TimeSpanHelper.FromNanoseconds(analysisResult.Error)}");
 	Console.WriteLine(@$"Errors: {analysisResult.Errors.Count}: {string.Join(",", analysisResult.Errors.Select(x => $"({x.Value} {x.TraceId})"))}");
 	Console.WriteLine();
 }

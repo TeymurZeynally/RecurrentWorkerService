@@ -9,18 +9,24 @@ namespace ExperimentalApplication.Workers;
 internal class WorkloadWorker : IWorkloadWorker
 {
 	private readonly IPayload _payload;
+	private readonly string _payloadName;
+	private readonly ActivitySource _activitySource;
 	private readonly ILogger<WorkloadWorker> _logger;
-    private readonly Random _random;
+	private readonly Random _random;
 
-    public WorkloadWorker(IPayload payload, ILogger<WorkloadWorker> logger)
+	public WorkloadWorker(IPayload payload, string payloadName, ActivitySource activitySource, ILogger<WorkloadWorker> logger)
 	{
 		_payload = payload;
+		_payloadName = payloadName;
+		_activitySource = activitySource;
 		_logger = logger;
 		_random = new Random();
 	}
 
 	public async Task<Workload> ExecuteAsync(CancellationToken cancellationToken)
 	{
+		using var activity = _activitySource.StartActivity(name: $"{nameof(WorkloadWorker)}.{nameof(ExecuteAsync)}-{_payloadName}");
+
 		using var _ = _logger.BeginScope("Workload worker");
 		_logger.LogInformation($"Start");
 
@@ -31,6 +37,8 @@ internal class WorkloadWorker : IWorkloadWorker
 		var workload = (Workload)_random.Next(Workload.Zero, Workload.Full);
 
 		_logger.LogInformation($"End");
+
+		activity?.AddTag("workload", workload.Value);
 
 		return workload;
 	}

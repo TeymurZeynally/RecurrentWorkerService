@@ -14,7 +14,7 @@ internal class PeriodicOperationsIntersectionAnalyser
 		_queryApi = queryApi;
 	}
 
-	public async Task<bool> Analyse(Interval interval, TimeSpan period, PayloadType payload, string identity)
+	public async Task<bool> Analyse(Interval interval, PayloadType payload, string identity)
 	{
 		var name = $"{payload}Payload.ExecuteAsync";
 		var parameters = QueryParametersBuilder.Build(

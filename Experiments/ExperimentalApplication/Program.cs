@@ -173,6 +173,8 @@ await Host.CreateDefaultBuilder(args)
 					"Workload-Immediate",
 					c => new WorkloadWorker(
 						new ImmediatePayload(c.GetRequiredService<ActivitySource>(), nodeId, "Workload-Immediate"),
+						nameof(ImmediatePayload),
+						c.GetRequiredService<ActivitySource>(),
 						c.GetRequiredService<ILogger<WorkloadWorker>>()),
 					s => s
 						.SetRange(TimeSpan.FromTicks(1), TimeSpan.FromTicks(1))
@@ -184,6 +186,8 @@ await Host.CreateDefaultBuilder(args)
 					"Workload-Fast",
 					c => new WorkloadWorker(
 						new FastPayload(c.GetRequiredService<ActivitySource>(), nodeId, "Workload-Fast"),
+						nameof(SlowPayload),
+						c.GetRequiredService<ActivitySource>(),
 						c.GetRequiredService<ILogger<WorkloadWorker>>()),
 					s => s
 						.SetRange(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10))
@@ -195,6 +199,8 @@ await Host.CreateDefaultBuilder(args)
 					"Workload-Slow",
 					c => new WorkloadWorker(
 						new SlowPayload(c.GetRequiredService<ActivitySource>(), nodeId, "Workload-Slow"),
+						nameof(SlowPayload),
+						c.GetRequiredService<ActivitySource>(),
 						c.GetRequiredService<ILogger<WorkloadWorker>>()),
 					s => s
 						.SetRange(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10))
@@ -206,6 +212,8 @@ await Host.CreateDefaultBuilder(args)
 					"Workload-Problem",
 					c => new WorkloadWorker(
 						new ProblemPayload(10, c.GetRequiredService<ActivitySource>(), nodeId, "Workload-Problem"),
+						nameof(ProblemPayload),
+						c.GetRequiredService<ActivitySource>(),
 						c.GetRequiredService<ILogger<WorkloadWorker>>()),
 					s => s
 						.SetRange(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10))

@@ -4,6 +4,8 @@ using EventsAnalyser.Calculators.Models;
 using EventsAnalyser.Queries.Models;
 using FluentAssertions;
 using InfluxDB.Client;
+using MathNet.Numerics.LinearAlgebra.Factorization;
+using NCrontab;
 
 namespace EventsAnalyser.Analysers;
 
@@ -18,6 +20,10 @@ internal class PeriodicOperationsAnalyser
 
 	public async Task<AnalysisResult> Analyse(Interval interval, TimeSpan period, PayloadType payload, string identity)
 	{
+		var isCron = identity.Contains("Cron", StringComparison.OrdinalIgnoreCase);
+		if (period.TotalMinutes != 1 && isCron) throw new NotSupportedException("Cron with period more than minute is nit supported by this analyser"); 
+
+
 		var name = $"{payload}Payload.ExecuteAsync";
 		var parameters = QueryParametersBuilder.Build(
 			new
@@ -42,16 +48,29 @@ internal class PeriodicOperationsAnalyser
 		{
 			if (previous != null)
 			{
-				var expectedDate = previous.DateTimeOffset + (previous.Duration > period ? previous.Duration : period);
+				var expectedDate = default(DateTimeOffset);
 
-				deltas.Add(operation.DateTimeOffset - expectedDate);
+				var delta = default(TimeSpan);
+				if (isCron)
+				{
+					var previousEnd = previous.DateTimeOffset + previous.Duration;
+					expectedDate = (DateTimeOffset)CrontabSchedule.Parse("* * * * *").GetNextOccurrence(previousEnd.UtcDateTime);
+					delta = expectedDate - operation.DateTimeOffset;
 
-				//Console.WriteLine($"{previous.DateTimeOffset} | {previous.Duration} | {expectedDate} | {operation.DateTimeOffset} | {operation.Duration}  | {deltas.Last()}");
+				}
+				else
+				{
+					expectedDate = previous.DateTimeOffset + (previous.Duration > period ? previous.Duration : period);
+					delta = operation.DateTimeOffset - expectedDate;
+				}
+
+				deltas.Add(delta);
 			}
-
 
 			previous = operation;
 		}
+
+
 		
 		deltas.Count.Should().NotBe(0);
 		

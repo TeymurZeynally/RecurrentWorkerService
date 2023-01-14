@@ -11,6 +11,7 @@
     <PackageReference Include="FluentAssertions" Version="6.8.0" />
     <PackageReference Include="InfluxDB.Client" Version="4.5.0" />
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
+    <PackageReference Include="NCrontab.Signed" Version="3.3.2" />
   </ItemGroup>
 
   <ItemGroup>

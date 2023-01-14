@@ -25,10 +25,5 @@ internal class AnalysisResult
 	/// </summary>
 	public double Variance { get; init; }
 
-	/// <summary>
-	/// Δx
-	/// </summary>
-	public double Error { get; init; }
-
 	public IReadOnlyCollection<(double Value, string TraceId)> Errors { get; init; }
 }
