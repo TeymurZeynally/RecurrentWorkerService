@@ -106,6 +106,9 @@ internal class DistributedWorkloadWorkerService : IDistributedWorkerService
 							Workload = workload ?? workloadInfo?.Workload ?? Workload.Full
 						};
 
+						activity?.AddTag("workload", workloadInfo.Workload);
+						activity?.AddTag("last-delay", workloadInfo.LastDelay);
+
 						_logger.LogDebug("Updating workload info...");
 						var response = await _persistence.UpdateWorkloadAsync(_identity, workloadInfo, TimeSpan.FromDays(60), stoppingToken);
 						_revision = response.Revision;

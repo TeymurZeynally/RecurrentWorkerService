@@ -6,7 +6,9 @@ using EventsAnalyser.Helpers;
 using EventsAnalyser.Queries.Models;
 using FluentAssertions;
 using InfluxDB.Client;
-
+using RecurrentWorkerService.Schedules;
+using RecurrentWorkerService.Schedules.WorkloadScheduleModels;
+using RecurrentWorkerService.Workers.Models;
 using Interval = EventsAnalyser.Queries.Models.Interval;
 
 var planExecutionsFile = @"D:\Users\Teymur\Desktop\Dashboard\ExperimentRuns.csv";
@@ -26,18 +28,41 @@ var influxDbClient = InfluxDBClientFactory.Create(options);
 var queryApi = influxDbClient.GetQueryApi();
 
 
+var immediateWorkloadSchedule = new WorkloadSchedule
+{
+	PeriodFrom = TimeSpan.FromTicks(1),
+	PeriodTo = TimeSpan.FromTicks(1),
+	Strategies = new[]
+	{
+		new WorkloadStrategy{ Workload = Workload.Zero, Action = StrategyAction.Add, ActionPeriod = TimeSpan.FromSeconds(1) },
+		new WorkloadStrategy{ Workload = Workload.FromPercent(50), Action = StrategyAction.Subtract, ActionPeriod = TimeSpan.FromSeconds(1) },
+	}
+};
+
+var normalWorkloadSchedule = new WorkloadSchedule
+{
+	PeriodFrom = TimeSpan.FromSeconds(1),
+	PeriodTo = TimeSpan.FromSeconds(10),
+	Strategies = new[]
+	{
+		new WorkloadStrategy{ Workload = Workload.Zero, Action = StrategyAction.Add, ActionPeriod = TimeSpan.FromSeconds(1) },
+		new WorkloadStrategy{ Workload = Workload.FromPercent(50), Action = StrategyAction.Subtract, ActionPeriod = TimeSpan.FromSeconds(1) },
+	}
+};
+
 var configurationOfWorkers = new[]
 {
-	(Id: "Cron-Immediate", Payload: PayloadType.Immediate, Period: TimeSpan.FromMinutes(1)),
-	(Id: "Cron-Fast", Payload: PayloadType.Fast, Period: TimeSpan.FromMinutes(1)),
-	(Id: "Cron-Slow", Payload: PayloadType.Slow, Period: TimeSpan.FromMinutes(1)),
-	(Id: "Recurrent-Immediate", Payload: PayloadType.Immediate, Period: TimeSpan.FromTicks(1)),
-	(Id: "Recurrent-Fast", Payload: PayloadType.Fast, Period: TimeSpan.FromSeconds(1)),
-	(Id: "Recurrent-Slow", Payload: PayloadType.Slow, Period: TimeSpan.FromSeconds(1)),
-	(Id: "Workload-Immediate", Payload: PayloadType.Immediate, Period: default(TimeSpan?)),
-	(Id: "Workload-Fast", Payload: PayloadType.Fast, Period: default(TimeSpan?)),
-	(Id: "Workload-Slow", Payload: PayloadType.Slow, Period: default(TimeSpan?)),
+	(Id: "Cron-Immediate", Payload: PayloadType.Immediate, Period: TimeSpan.FromMinutes(1), WorkloadSchedule: default(WorkloadSchedule)),
+	(Id: "Cron-Fast", Payload: PayloadType.Fast, Period: TimeSpan.FromMinutes(1), WorkloadSchedule: default(WorkloadSchedule)),
+	(Id: "Cron-Slow", Payload: PayloadType.Slow, Period: TimeSpan.FromMinutes(1), WorkloadSchedule: default(WorkloadSchedule)),
+	(Id: "Recurrent-Immediate", Payload: PayloadType.Immediate, Period: TimeSpan.FromTicks(1), WorkloadSchedule: default(WorkloadSchedule)),
+	(Id: "Recurrent-Fast", Payload: PayloadType.Fast, Period: TimeSpan.FromSeconds(1), WorkloadSchedule: default(WorkloadSchedule)),
+	(Id: "Recurrent-Slow", Payload: PayloadType.Slow, Period: TimeSpan.FromSeconds(1), WorkloadSchedule: default(WorkloadSchedule)),
+	(Id: "Workload-Immediate", Payload: PayloadType.Immediate, Period: default(TimeSpan?), WorkloadSchedule: immediateWorkloadSchedule),
+	(Id: "Workload-Fast", Payload: PayloadType.Fast, Period: default(TimeSpan?), WorkloadSchedule: normalWorkloadSchedule),
+	(Id: "Workload-Slow", Payload: PayloadType.Slow, Period: default(TimeSpan?), WorkloadSchedule: normalWorkloadSchedule),
 };
+
 
 foreach (var line in lines)
 {
@@ -78,6 +103,12 @@ foreach (var line in lines)
 		if(config.Period != null)
 		{
 			var periodicOperationsResult = await new PeriodicOperationsAnalyser(queryApi).Analyse(line.Interval, config.Period.Value, config.Payload, config.Id);
+			periodicOperationsReults.Add(periodicOperationsResult);
+		}
+
+		if(config.WorkloadSchedule != null)
+		{
+			var periodicOperationsResult = await new PeriodicWorkloadOperationsAnalyser(queryApi).Analyse(line.Interval, config.WorkloadSchedule, config.Payload);
 			periodicOperationsReults.Add(periodicOperationsResult);
 		}
 

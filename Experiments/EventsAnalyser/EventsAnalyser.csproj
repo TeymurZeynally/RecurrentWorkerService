@@ -15,10 +15,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="Queries\QueryWorkloadOperationsTimeAndDuration.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Queries\QueryPrioritiesReceiveTimestamp.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <None Remove="Queries\QueryPersistenceOperationsDuration.txt" />
+    <None Remove="Queries\QueryWorkloadOperationsTimeAndDuration.txt" />
     <Content Include="Queries\QueryPersistenceOperationsDuration.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -30,6 +34,10 @@
     <Content Include="Queries\QueryOperationsTimeAndDuration.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\RecurrentWorkerService\RecurrentWorkerService.csproj" />
   </ItemGroup>
 
 </Project>

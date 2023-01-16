@@ -1,0 +1,8 @@
+﻿from(bucket: "experiment_app")
+  |> range(start: time(v: startTimeStamp), stop: time(v: endTimeStamp))
+  |> filter(fn: (r) => r["_measurement"] == "spans")
+  |> filter(fn: (r) => r["name"] == name )
+  |> filter(fn: (r) => r["_field"] == "duration_nano" or r["_field"] == "workload")
+  |> pivot(rowKey: ["_time", "span_id"], columnKey: ["_field"], valueColumn: "_value")
+  |> keep(columns: ["_time", "duration_nano", "workload"])
+  |> sort(columns: ["_time"])

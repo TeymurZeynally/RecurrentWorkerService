@@ -7,9 +7,6 @@ internal class PrioritiesReceiveData
 {
 	[Column(IsTimestamp = true)]
 	public DateTime DateTime { get; set; }
-		
-	[Column("duration_nano")]
-	public long DurationNanoseconds { get; set; }
 
 	[Column("name")]
 	public string Name { get; set; }
@@ -25,8 +22,6 @@ internal class PrioritiesReceiveData
 		
 	[Column("priority_event_id")]
 	public string PriorityEventId { get; set; }
-		
-	public TimeSpan Duration => TimeSpanHelper.FromNanoseconds(DurationNanoseconds);
-		
+
 	public DateTimeOffset DateTimeOffset => new(DateTime);
 }

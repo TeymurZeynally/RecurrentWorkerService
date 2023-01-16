@@ -186,7 +186,7 @@ await Host.CreateDefaultBuilder(args)
 					"Workload-Fast",
 					c => new WorkloadWorker(
 						new FastPayload(c.GetRequiredService<ActivitySource>(), nodeId, "Workload-Fast"),
-						nameof(SlowPayload),
+						nameof(FastPayload),
 						c.GetRequiredService<ActivitySource>(),
 						c.GetRequiredService<ILogger<WorkloadWorker>>()),
 					s => s
