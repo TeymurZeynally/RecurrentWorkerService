@@ -1,8 +1,26 @@
-﻿from(bucket: "experiment_app")
+﻿service_name = "DistributedWorkloadWorkerService"
+// identity = "Workload-Slow"
+
+service =  from(bucket: "experiment_app")
   |> range(start: time(v: startTimeStamp), stop: time(v: endTimeStamp))
   |> filter(fn: (r) => r["_measurement"] == "spans")
-  |> filter(fn: (r) => r["name"] == name )
+  |> filter(fn: (r) => r["name"] == service_name )
+  |> filter(fn: (r) => r["_field"] == "duration_nano" or r["_field"] == "workload" or  r["_field"] == "last-delay" or (r["_field"] == "identity" and r["_value"] == identity))
+  |> pivot(rowKey: ["_time", "span_id"], columnKey: ["_field"], valueColumn: "_value")
+  |> filter(fn: (r) => r["identity"] != "")
+  |> keep(columns: ["_time", "duration_nano", "workload", "last-delay", "trace_id"])
+
+
+// worker_name = "WorkloadWorker.ExecuteAsync-SlowPayload"
+worker = from(bucket: "experiment_app")
+  |> range(start: time(v: startTimeStamp), stop: time(v: endTimeStamp))
+  |> filter(fn: (r) => r["_measurement"] == "spans")
+  |> filter(fn: (r) => r["name"] == worker_name )
   |> filter(fn: (r) => r["_field"] == "duration_nano" or r["_field"] == "workload")
   |> pivot(rowKey: ["_time", "span_id"], columnKey: ["_field"], valueColumn: "_value")
-  |> keep(columns: ["_time", "duration_nano", "workload"])
-  |> sort(columns: ["_time"])
+  |> keep(columns: ["_time", "duration_nano", "workload", "last-delay", "trace_id"])
+
+join(tables: {service: service, worker: worker}, on: ["trace_id"])
+ |> map(fn: (r) => ({ _time: r._time_worker, duration_nano: r.duration_nano_worker, workload: r.workload_worker, "last-delay": r["last-delay"]   }))
+ |> sort(columns: ["_time"])
+

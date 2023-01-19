@@ -55,8 +55,7 @@ internal class PeriodicOperationsAnalyser
 				{
 					var previousEnd = previous.DateTimeOffset + previous.Duration;
 					expectedDate = (DateTimeOffset)CrontabSchedule.Parse("* * * * *").GetNextOccurrence(previousEnd.UtcDateTime);
-					delta = expectedDate - operation.DateTimeOffset;
-
+					delta = operation.DateTimeOffset - expectedDate;
 				}
 				else
 				{

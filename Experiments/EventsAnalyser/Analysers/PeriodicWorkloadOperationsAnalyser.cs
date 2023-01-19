@@ -4,6 +4,7 @@ using EventsAnalyser.Calculators.Models;
 using EventsAnalyser.Queries.Models;
 using FluentAssertions;
 using InfluxDB.Client;
+using RecurrentWorkerService.Extensions;
 using RecurrentWorkerService.Schedules;
 using RecurrentWorkerService.Services.Calculators;
 
@@ -18,18 +19,14 @@ internal class PeriodicWorkloadOperationsAnalyser
 		_queryApi = queryApi;
 	}
 
-	public async Task<AnalysisResult> Analyse(Interval interval, WorkloadSchedule schedule, PayloadType payload)
+	public async Task<AnalysisResult> Analyse(Interval interval, WorkloadSchedule schedule, PayloadType payload, string identity)
 	{
-		if(payload == PayloadType.Immediate)
-		{
-			return null;
-		}
-
 		var name = $"WorkloadWorker.ExecuteAsync-{payload}Payload";
 		var parameters = QueryParametersBuilder.Build(
 			new
 			{
-				name,
+				worker_name = name,
+				identity,
 				startTimeStamp = interval.StartTimeStamp.UtcDateTime.ToString("O"),
 				endTimeStamp = interval.EndTimeStamp.UtcDateTime.ToString("O"),
 			});
@@ -42,7 +39,6 @@ internal class PeriodicWorkloadOperationsAnalyser
 		var deltas = new List<TimeSpan>();
 
 		var previous = default(WorkloadOperationDuration);
-		var workloadDelay = TimeSpan.Zero;
 
 		var data = await Cache.Cache.Get<WorkloadOperationDuration>(
 			query,
@@ -52,9 +48,16 @@ internal class PeriodicWorkloadOperationsAnalyser
 		{
 			if (previous != null)
 			{
-				var expectedDate = calcualtor.Calculate(schedule, workloadDelay, previous.Workload, false);
+				var previousEndDate = previous.DateTimeOffset + previous.Duration;
+				var actualDelay = operation.DateTimeOffset - previousEndDate;
 
-				
+				var delay = calcualtor.Calculate(schedule, previous.LastDelay, previous.Workload, false);
+				delay = TimeSpanExtensions.Max(delay - previous.Duration, TimeSpan.Zero);
+
+				var delta = actualDelay - delay;
+
+				deltas.Add(delta);
+				//Console.WriteLine(delta);
 			}
 
 			previous = operation;
@@ -62,6 +65,6 @@ internal class PeriodicWorkloadOperationsAnalyser
 
 		deltas.Count.Should().NotBe(0);
 
-		return AnalysisResultCalculator.Calculate($"Workload-{payload}", deltas.Select(v => (v.TotalNanoseconds, string.Empty)).ToArray());
+		return AnalysisResultCalculator.Calculate(identity, deltas.Select(v => (v.TotalNanoseconds, string.Empty)).ToArray());
 	}
 }

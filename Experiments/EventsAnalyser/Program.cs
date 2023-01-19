@@ -71,22 +71,16 @@ foreach (var line in lines)
 	Console.WriteLine();
 
 	var excludeList = new string[] {
-//		"Test 5.3: Storage delay 500ms",
-//		"Test 5.4: Storage delay 700ms",
-//		"Test 5.5: Storage delay 900ms",
-//		"Test 5.6: Storage delay 1100ms",
-//		"Test 8.3: Storage loss percent 50%",
-//		"Test 14.3: Storage corrupt percent 50%"
-	};
-
-	var excludeAssertOperationsIntersection = new string[] {
-//		"Test 7.2: App loss percent 30%",
-//		"Test 7.3: App loss percent 50%",
-//		"Test 9.2: App loss percent 50% on two nodes",
-//		"Test 13.2: App corrupt percent 30%",
-//		"Test 13.3: App corrupt percent 50%",
-//		"Test 15.1: App corrupt percent 50% on one node",
-//		"Test 15.2: App corrupt percent 50% on twp nodes"
+		"Test 2.7: Storage bandwidth 1kbps",
+		"Test 2.8: Storage bandwidth 512bps",
+		"Test 5.2: Storage delay 300ms",
+		"Test 5.3: Storage delay 500ms",
+		"Test 5.4: Storage delay 700ms",
+		"Test 5.5: Storage delay 900ms",
+		"Test 5.6: Storage delay 1100ms",
+		"Test 8.3: Storage loss percent 50%",
+		"Test 14.2: Storage corrupt percent 30%",
+		"Test 14.3: Storage corrupt percent 50%"
 	};
 
 	if (excludeList.Contains(line.Name)) continue;
@@ -103,16 +97,18 @@ foreach (var line in lines)
 		if(config.Period != null)
 		{
 			var periodicOperationsResult = await new PeriodicOperationsAnalyser(queryApi).Analyse(line.Interval, config.Period.Value, config.Payload, config.Id);
+			periodicOperationsResult.Should().NotBeNull();
 			periodicOperationsReults.Add(periodicOperationsResult);
 		}
 
 		if(config.WorkloadSchedule != null)
 		{
-			var periodicOperationsResult = await new PeriodicWorkloadOperationsAnalyser(queryApi).Analyse(line.Interval, config.WorkloadSchedule, config.Payload);
+			var periodicOperationsResult = await new PeriodicWorkloadOperationsAnalyser(queryApi).Analyse(line.Interval, config.WorkloadSchedule, config.Payload, config.Id);
+			periodicOperationsResult.Should().NotBeNull();
 			periodicOperationsReults.Add(periodicOperationsResult);
 		}
 
-		if (!excludeAssertOperationsIntersection.Contains(line.Name)) periodicOperationsIntersectionResult.Should().BeTrue();
+		periodicOperationsIntersectionResult.Should().BeTrue();
 		periodicOperationsIntersectionResults.Add((config.Id, periodicOperationsIntersectionResult));
 		libAndCodeOperationsReults.Add(libAndCodeOperationsAnalyserResult);
 	}
