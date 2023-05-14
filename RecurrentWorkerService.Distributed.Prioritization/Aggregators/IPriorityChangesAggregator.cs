@@ -6,5 +6,7 @@ internal interface IPriorityChangesAggregator
 
 	Task ResetPriorityAsync(string identity, CancellationToken cancellationToken);
 
-	Task UpdateIndicatorPriorities(byte[] indicators, CancellationToken cancellationToken);
+	Task UpdateIdentityIndicatorPrioritiesAsync((string Identity, byte Measurement)[] indicators, CancellationToken cancellationToken);
+
+	Task UpdateNodeIndicatorPrioritiesAsync(byte[] indicators, CancellationToken cancellationToken);
 }

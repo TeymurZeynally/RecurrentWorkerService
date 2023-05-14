@@ -18,11 +18,15 @@ public interface IPersistence
 
 	Task<PersistenceResponse> UpdateWorkloadAsync(string identity, WorkloadInfo workloadInfo, TimeSpan lifetime, CancellationToken cancellationToken);
 
-	Task UpdatePriorityAsync(string identity, byte priority, CancellationToken cancellationToken);
+	Task UpdateFailurePriorityAsync(string identity, byte priority, CancellationToken cancellationToken);
+
+	Task UpdateIdentityPriorityAsync(string identity, byte priority, CancellationToken cancellationToken);
 
 	Task UpdateNodePriorityAsync(byte priority, CancellationToken cancellationToken);
 
-	IAsyncEnumerable<PriorityEvent> WatchPriorityUpdates(CancellationToken cancellationToken);
+	IAsyncEnumerable<PriorityEvent> WatchFailuresPriorityUpdates(CancellationToken cancellationToken);
+
+	IAsyncEnumerable<PriorityEvent> WatchIdentityPriorityUpdates(CancellationToken cancellationToken);
 
 	IAsyncEnumerable<NodePriorityEvent> WatchNodePriorityUpdates(CancellationToken cancellationToken);
 

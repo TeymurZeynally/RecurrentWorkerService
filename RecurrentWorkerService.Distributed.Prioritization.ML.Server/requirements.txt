@@ -1,0 +1,8 @@
+flask
+waitress
+
+numpy
+scikit-learn
+pandas
+onnx
+tf2onnx

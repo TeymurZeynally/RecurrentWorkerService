@@ -13,13 +13,14 @@ namespace RecurrentWorkerService.Distributed.Prioritization.Registration;
 
 public static class DistributedWorkersBuilderExtensions
 {
-	public static IDistributedWorkersBuilder AddBasicPrioritization(this IDistributedWorkersBuilder builder)
+	public static IDistributedWorkersBuilder AddPrioritization(this IDistributedWorkersBuilder builder, Action<DistributedWorkersPrioritizationBuilder>? prioritizationBuilder = null)
 	{
 		var assembly = System.Reflection.Assembly.GetExecutingAssembly().GetName();
 		var activitySource = new ActivitySource(assembly.Name!, assembly.Version?.ToString());
 
+		prioritizationBuilder?.Invoke(new DistributedWorkersPrioritizationBuilder(builder.Services));
+
 		builder.Services.AddSingleton<IPriorityCalculator, PriorityCalculator>();
-		builder.Services.AddSingleton<IRecurrentExecutionDelayCalculator, RecurrentExecutionDelayCalculator>();
 		builder.Services.AddSingleton<IComputedPriorityAggregator, ComputedPriorityAggregator>(
 			r => new ComputedPriorityAggregator(
 				builder.NodeId,
@@ -33,13 +34,13 @@ public static class DistributedWorkersBuilderExtensions
 				activitySource));
 		builder.Services.AddSingleton<IPriorityCalculator, PriorityCalculator>();
 		builder.Services.AddSingleton<IPriorityManager, PriorityManager>();
-		builder.Services.AddSingleton<IPriorityIndicator, DefaultPriorityIndicator>();
 
 		builder.Services.AddHostedService(r => new PriorityService(
 			r.GetRequiredService<IPersistence>(),
 			r.GetRequiredService<IComputedPriorityAggregator>(),
 			r.GetRequiredService<IPriorityChangesAggregator>(),
-			r.GetServices<IPriorityIndicator>().ToArray(),
+			r.GetServices<IdentityPriorityIndicator>().ToArray(),
+			r.GetServices<NodePriorityIndicator>().ToArray(),
 			r.GetRequiredService<ILogger<PriorityService>>()));
 
 		return builder;

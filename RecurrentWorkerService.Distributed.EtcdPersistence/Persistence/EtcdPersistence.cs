@@ -147,7 +147,7 @@ internal class EtcdPersistence: IPersistence
 		return new() { Revision = response.Header.Revision };
 	}
 
-	public async Task UpdatePriorityAsync(string identity, byte priority, CancellationToken cancellationToken)
+	public async Task UpdateFailurePriorityAsync(string identity, byte priority, CancellationToken cancellationToken)
 	{
 		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityTags);
 
@@ -155,7 +155,7 @@ internal class EtcdPersistence: IPersistence
 		await _kvClient.PutAsync(new PutRequest
 			{
 				Lease = _nodeId,
-				Key = ByteString.CopyFromUtf8(GetKeyForIterationPriority(identity)),
+				Key = ByteString.CopyFromUtf8(GetKeyForFailurePriority(identity)),
 				Value = ByteString.CopyFrom(priority),
 			},
 			cancellationToken: cancellationToken);
@@ -176,7 +176,23 @@ internal class EtcdPersistence: IPersistence
 			cancellationToken: cancellationToken);
 	}
 
-	public IAsyncEnumerable<PriorityEvent> WatchPriorityUpdates(CancellationToken cancellationToken)
+
+	public async Task UpdateIdentityPriorityAsync(string identity, byte priority, CancellationToken cancellationToken)
+	{
+		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityTags);
+
+		await WaitForLeaseAsync();
+		await _kvClient.PutAsync(new PutRequest
+			{
+				Lease = _nodeId,
+				Key = ByteString.CopyFromUtf8(GetKeyForIdentityPriority(identity)),
+				Value = ByteString.CopyFrom(priority),
+			},
+			cancellationToken: cancellationToken);
+	}
+
+
+	public IAsyncEnumerable<PriorityEvent> WatchFailuresPriorityUpdates(CancellationToken cancellationToken)
 	{
 		PriorityEvent ConvertToPriorityEvent(KeyValue kv)
 		{
@@ -188,7 +204,22 @@ internal class EtcdPersistence: IPersistence
 			return new PriorityEvent { Revision = kv.ModRevision, Identity = identity, NodeId = node, Priority = priority };
 		};
 
-		return WatchUpdates(GetSearchKeyForIterationPriority(), ConvertToPriorityEvent, cancellationToken);
+		return WatchUpdates(GetSearchKeyForFailurePriority(), ConvertToPriorityEvent, cancellationToken);
+	}
+
+	public IAsyncEnumerable<PriorityEvent> WatchIdentityPriorityUpdates(CancellationToken cancellationToken)
+	{
+		PriorityEvent ConvertToPriorityEvent(KeyValue kv)
+		{
+			var keyParts = kv.Key.ToStringUtf8().Split("/");
+			var identity = keyParts[2];
+			var node = Convert.ToInt64(keyParts[3]);
+			var priority = kv.Value.IsEmpty ? default(byte?) : kv.Value.ToByteArray().Single();
+
+			return new PriorityEvent { Revision = kv.ModRevision, Identity = identity, NodeId = node, Priority = priority };
+		};
+
+		return WatchUpdates(GetSearchKeyForIdentityPriority(), ConvertToPriorityEvent, cancellationToken);
 	}
 
 	public IAsyncEnumerable<NodePriorityEvent> WatchNodePriorityUpdates(CancellationToken cancellationToken)
@@ -288,9 +319,13 @@ internal class EtcdPersistence: IPersistence
 
 	private string GetKeyForSucceededIteration(string identity, long scheduleIndex) => $"{_serviceId}/{identity}/{scheduleIndex}/Success";
 	
-	private string GetSearchKeyForIterationPriority() => $"{_serviceId}/Priority";
+	private string GetSearchKeyForFailurePriority() => $"{_serviceId}/FailurePriority";
 
-	private string GetKeyForIterationPriority(string identity) => $"{GetSearchKeyForIterationPriority()}/{identity}/{_nodeId}";
+	private string GetKeyForFailurePriority(string identity) => $"{GetSearchKeyForFailurePriority()}/{identity}/{_nodeId}";
+
+	private string GetSearchKeyForIdentityPriority() => $"{_serviceId}/IdentityPriority";
+
+	private string GetKeyForIdentityPriority(string identity) => $"{GetSearchKeyForIdentityPriority()}/{identity}/{_nodeId}";
 
 	private string GetSearchKeyForNodePriority() => $"{_serviceId}/NodePriority";
 

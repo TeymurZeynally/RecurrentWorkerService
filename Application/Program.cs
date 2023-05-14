@@ -4,10 +4,10 @@ using Grpc.Net.Client;
 using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Configuration;
 using RecurrentWorkerService.Distributed.EtcdPersistence.Registration;
+using RecurrentWorkerService.Distributed.Prioritization.ML.Registration;
+using RecurrentWorkerService.Distributed.Prioritization.ML.Registration.Models;
 using RecurrentWorkerService.Distributed.Prioritization.Registration;
 using RecurrentWorkerService.Distributed.Registration;
-using RecurrentWorkerService.Registration;
-using RecurrentWorkerService.Workers.Models;
 
 var factory = new StaticResolverFactory(addr => new[]
 {
@@ -46,6 +46,7 @@ var channel = GrpcChannel.ForAddress(
 await Host.CreateDefaultBuilder(args)
 	.ConfigureServices(services =>
 	{
+		/*
 		services.AddWorkers(w =>
 		{
 			// Direct type registration
@@ -90,11 +91,12 @@ await Host.CreateDefaultBuilder(args)
 						.Set(Workload.Full, TimeSpan.FromSeconds(1)))
 					.SetRetryOnFailDelay(TimeSpan.FromSeconds(1)));
 		});
-
+		*/
 		services.AddDistributedWorkers(
 			"LocalWorkerService",
 			w =>
 			{
+				/*
 				w.AddDistributedCronWorker<ExampleOfCronWorker>(
 				    "CronWorker-1",
 				    s => s
@@ -107,6 +109,7 @@ await Host.CreateDefaultBuilder(args)
 				    s => s
 				        .SetCronExpression("* * * * *")
 				        .SetRetryOnFailDelay(TimeSpan.FromSeconds(1)));
+				*/
 
 				w.AddDistributedRecurrentWorker<ExampleOfRecurrentWorker>(
 				    "RecurrentWorker-1",
@@ -114,6 +117,7 @@ await Host.CreateDefaultBuilder(args)
 						.SetPeriod(TimeSpan.FromSeconds(5))
 						.SetRetryOnFailDelay(TimeSpan.Zero));
 
+				/*
 				w.AddDistributedWorkloadWorker<ExampleOfWorkloadWorker>(
 					"WorkloadWorker-1",
 					s => s
@@ -121,9 +125,18 @@ await Host.CreateDefaultBuilder(args)
 						.SetStrategies(c => c
 							.Add(Workload.Zero, TimeSpan.FromSeconds(1))
 							.Subtract(Workload.FromPercent(50), TimeSpan.FromSeconds(1))));
+				*/
 			})
 			.AddEtcdPersistence(channel)
-			.AddBasicPrioritization();	
+			.AddPrioritization(o =>
+			{
+				// o.AddIdentityPriorityIndicator<PriorityIndicator>("RecurrentWorker-1");
+
+				o.AddMLPrioritization(@"C:\ML", c => c.BaseAddress = new Uri("http://localhost:8083"), m =>
+				{
+					m.AddIdentityPriorityIndicator("RecurrentWorker-1", Influence.Zero, Influence.Full, Influence.Full);
+				});
+			});
 	})
 	.Build()
 	.RunAsync();

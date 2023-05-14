@@ -77,7 +77,7 @@ public class UnitTest1
 		{
 			try
 			{
-				await foreach (var update in _persistence.WatchPriorityUpdates(CancellationToken.None))
+				await foreach (var update in _persistence.WatchFailuresPriorityUpdates(CancellationToken.None))
 				{
 					Debug.Print($"Received priority update {update.NodeId} {update.Identity} {(update.Priority.HasValue ? update.Priority.Value.ToString() : "NO")}");
 				}
@@ -89,7 +89,7 @@ public class UnitTest1
 
 		var rand = new Random();
 		await _persistence.HeartbeatAsync(TimeSpan.FromSeconds(10), CancellationToken.None);
-		await _persistence.UpdatePriorityAsync("ID", (byte)rand.Next(byte.MinValue, byte.MaxValue), CancellationToken.None);
+		await _persistence.UpdateFailurePriorityAsync("ID", (byte)rand.Next(byte.MinValue, byte.MaxValue), CancellationToken.None);
 
 
 

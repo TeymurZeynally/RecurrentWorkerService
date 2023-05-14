@@ -12,25 +12,29 @@ internal class PriorityService : BackgroundService
 		IPersistence persistence,
 		IComputedPriorityAggregator computedPriorityAggregator,
 		IPriorityChangesAggregator priorityChangesAggregator,
-		IPriorityIndicator[] priorityIndicators,
+		IdentityPriorityIndicator[] identityPriorityIndicators,
+		NodePriorityIndicator[] nodePriorityIndicators,
 		ILogger<PriorityService> logger)
 	{
 		_persistence = persistence;
 		_computedPriorityAggregator = computedPriorityAggregator;
 		_priorityChangesAggregator = priorityChangesAggregator;
-		_priorityIndicators = priorityIndicators;
+		_identityPriorityIndicators = identityPriorityIndicators;
+		_nodePriorityIndicators = nodePriorityIndicators;
 		_logger = logger;
 	}
 
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
 		await Task.WhenAll(
-			CollectPriorityChanges(stoppingToken),
+			CollectFailuresPriorityChanges(stoppingToken),
+			CollectIdentityPriorityChanges(stoppingToken),
 			CollectNodePriorityChanges(stoppingToken),
-			CollectIndicatorsInfo(stoppingToken));
+			CollectIdentityIndicatorsInfo(stoppingToken),
+			CollectNodeIndicatorsInfo(stoppingToken));
 	}
 
-	private async Task CollectPriorityChanges(CancellationToken cancellationToken)
+	private async Task CollectFailuresPriorityChanges(CancellationToken cancellationToken)
 	{
 		while (!cancellationToken.IsCancellationRequested)
 		{
@@ -39,15 +43,37 @@ internal class PriorityService : BackgroundService
 				_computedPriorityAggregator.ResetPriorityInformation();
 		
 				_logger.LogDebug("Retrieving priority information");
-				await foreach (var update in _persistence.WatchPriorityUpdates(cancellationToken))
+				await foreach (var update in _persistence.WatchFailuresPriorityUpdates(cancellationToken))
 				{
 					_logger.LogDebug($"Received priority update {update.NodeId} {update.Identity} {update.Priority}");
-					_computedPriorityAggregator.UpdatePriorityInformation(update);
+					_computedPriorityAggregator.UpdateFailuresPriorityInformation(update);
 				}
 			}
-			catch (Exception)
+			catch (Exception e)
 			{
-				_logger.LogWarning("Priority update connection problem. Retrying...");
+				_logger.LogWarning(e, "Priority update connection problem. Retrying...");
+			}
+		}
+	}
+
+	private async Task CollectIdentityPriorityChanges(CancellationToken cancellationToken)
+	{
+		while (!cancellationToken.IsCancellationRequested)
+		{
+			try
+			{
+				_computedPriorityAggregator.ResetPriorityInformation();
+
+				_logger.LogDebug("Retrieving priority information");
+				await foreach (var update in _persistence.WatchIdentityPriorityUpdates(cancellationToken))
+				{
+					_logger.LogDebug($"Received priority update {update.NodeId} {update.Identity} {update.Priority}");
+					_computedPriorityAggregator.UpdateIdentityPriorityInformation(update);
+				}
+			}
+			catch (Exception e)
+			{
+				_logger.LogWarning(e, "Priority update connection problem. Retrying...");
 			}
 		}
 	}
@@ -67,16 +93,16 @@ internal class PriorityService : BackgroundService
 					_computedPriorityAggregator.UpdateNodePriorityInformation(update);
 				}
 			}
-			catch (Exception)
+			catch (Exception e)
 			{
-				_logger.LogWarning("Node priority update connection problem. Retrying...");
+				_logger.LogWarning(e, "Node priority update connection problem. Retrying...");
 			}
 		}
 	}
 
-	private async Task CollectIndicatorsInfo(CancellationToken cancellationToken)
+	private async Task CollectIdentityIndicatorsInfo(CancellationToken cancellationToken)
 	{
-		if (!_priorityIndicators.Any())
+		if (!_identityPriorityIndicators.Any())
 		{
 			return;
 		}
@@ -85,14 +111,37 @@ internal class PriorityService : BackgroundService
 		{
 			try
 			{
-				var indicators = _priorityIndicators.Select(x => x.GetMeasurement()).ToArray();
-				await _priorityChangesAggregator.UpdateIndicatorPriorities(indicators, cancellationToken);
+				var indicators = _identityPriorityIndicators.Select(x => (x.Identity, x.GetMeasurement())).ToArray();
+				await _priorityChangesAggregator.UpdateIdentityIndicatorPrioritiesAsync(indicators, cancellationToken);
 				await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
 
 			}
-			catch (Exception)
+			catch (Exception e)
 			{
-				_logger.LogWarning("Indicators priority update connection problem. Retrying...");
+				_logger.LogWarning(e, "IdentityI indicators priority update connection problem. Retrying...");
+			}
+		}
+	}
+
+	private async Task CollectNodeIndicatorsInfo(CancellationToken cancellationToken)
+	{
+		if (!_nodePriorityIndicators.Any())
+		{
+			return;
+		}
+
+		while (!cancellationToken.IsCancellationRequested)
+		{
+			try
+			{
+				var indicators = _nodePriorityIndicators.Select(x => x.GetMeasurement()).ToArray();
+				await _priorityChangesAggregator.UpdateNodeIndicatorPrioritiesAsync(indicators, cancellationToken);
+				await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+
+			}
+			catch (Exception e)
+			{
+				_logger.LogWarning(e, "Node indicators priority update connection problem. Retrying...");
 			}
 		}
 	}
@@ -100,6 +149,7 @@ internal class PriorityService : BackgroundService
 	private readonly IPersistence _persistence;
 	private readonly IComputedPriorityAggregator _computedPriorityAggregator;
 	private readonly IPriorityChangesAggregator _priorityChangesAggregator;
-	private readonly IPriorityIndicator[] _priorityIndicators;
+	private readonly IdentityPriorityIndicator[] _identityPriorityIndicators;
+	private readonly NodePriorityIndicator[] _nodePriorityIndicators;
 	private readonly ILogger<PriorityService> _logger;
 }

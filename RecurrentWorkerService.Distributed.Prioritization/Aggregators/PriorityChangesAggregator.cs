@@ -21,8 +21,8 @@ internal class PriorityChangesAggregator : IPriorityChangesAggregator
 
 		_executionFailuresDictionary.TryAdd(identity, new ConcurrentBag<DateTimeOffset>());
 		_executionFailuresDictionary[identity].Add(DateTimeOffset.UtcNow);
-		var priority = await _priorityCalculator.GetPriorityAsync(_executionFailuresDictionary[identity].ToArray(), cancellationToken);
-		await _persistence.UpdatePriorityAsync(identity, priority, cancellationToken);
+		var priority = await _priorityCalculator.GetFailuresPriorityAsync(_executionFailuresDictionary[identity].ToArray(), cancellationToken);
+		await _persistence.UpdateFailurePriorityAsync(identity, priority, cancellationToken);
 	}
 
 	public async Task ResetPriorityAsync(string identity, CancellationToken cancellationToken)
@@ -31,23 +31,29 @@ internal class PriorityChangesAggregator : IPriorityChangesAggregator
 
 		_executionFailuresDictionary.TryAdd(identity, new ConcurrentBag<DateTimeOffset>());
 		_executionFailuresDictionary[identity].Clear();
-		var priority = await _priorityCalculator.GetPriorityAsync(_executionFailuresDictionary[identity].ToArray(), cancellationToken);
-		await _persistence.UpdatePriorityAsync(identity, priority, cancellationToken);
+		var priority = await _priorityCalculator.GetFailuresPriorityAsync(_executionFailuresDictionary[identity].ToArray(), cancellationToken);
+		await _persistence.UpdateFailurePriorityAsync(identity, priority, cancellationToken);
 	}
 
-	public async Task UpdateIndicatorPriorities(byte[] indicators, CancellationToken cancellationToken)
+	public async Task UpdateIdentityIndicatorPrioritiesAsync((string Identity, byte Measurement)[] indicators, CancellationToken cancellationToken)
 	{
 		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityNodeTags);
 
-		if (_indicators.Count > _indicatorsCapacity)
+		foreach (var group in indicators.GroupBy(x => x.Identity))
 		{
-			_indicators.RemoveRange(0, _indicators.Count - _indicatorsCapacity);
+			var priority = await _priorityCalculator.GetIdentityPriorityAsync(group.Select(x => x.Measurement).ToArray(), cancellationToken);
+			await _persistence.UpdateIdentityPriorityAsync(group.Key, priority, cancellationToken);
 		}
+	}
 
-		_indicators.Add(indicators);
-		var priority =  await _priorityCalculator.GetNodePriorityAsync(_indicators.ToArray(), cancellationToken);
+	public async Task UpdateNodeIndicatorPrioritiesAsync(byte[] indicators, CancellationToken cancellationToken)
+	{
+		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityNodeTags);
+
+		var priority = await _priorityCalculator.GetNodePriorityAsync(indicators, cancellationToken);
 		await _persistence.UpdateNodePriorityAsync(priority, cancellationToken);
 	}
+
 
 	private readonly IPersistence _persistence;
 	private readonly IPriorityCalculator _priorityCalculator;
@@ -55,6 +61,4 @@ internal class PriorityChangesAggregator : IPriorityChangesAggregator
 	private readonly ActivitySource _activitySource;
 
 	private readonly ConcurrentDictionary<string, ConcurrentBag<DateTimeOffset>> _executionFailuresDictionary = new();
-	private readonly List<byte[]> _indicators = new();
-	private readonly int _indicatorsCapacity = 100;
 }

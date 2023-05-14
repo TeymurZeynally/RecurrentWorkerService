@@ -6,11 +6,13 @@ internal interface IComputedPriorityAggregator
 {
 	int GetNodeOrder(string identity);
 
-	void UpdatePriorityInformation(PriorityEvent priorityEvent);
+	void UpdateIdentityPriorityInformation(PriorityEvent priorityEvent);
 
-	void ResetPriorityInformation();
+	void UpdateFailuresPriorityInformation(PriorityEvent priorityEvent);
 
 	void UpdateNodePriorityInformation(NodePriorityEvent priorityEvent);
+
+	void ResetPriorityInformation();
 
 	void ResetNodePriorityInformation();
 }

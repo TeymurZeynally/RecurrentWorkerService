@@ -19,24 +19,28 @@ internal class ComputedPriorityAggregator: IComputedPriorityAggregator
 	{
 		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityNodeTags);
 
-		if (!_prioritiesDictionary.TryGetValue(identity, out var nodesDict))
+		if (!_failurePrioritiesDictionary.TryGetValue(identity, out var failureNodeDict))
 		{
 			return 0;
 		}
 
-		var nodesPriorityOrder = nodesDict
-			.Select(x => (IdPriority: x.Value, NodePriority: _nodePrioritiesDictionary.GetValueOrDefault(x.Key)))
-			.OrderBy(x => x.IdPriority).ThenBy(x => x.NodePriority)
+		_identityPrioritiesDictionary.TryGetValue(identity, out var identityNodeDict);
+		identityNodeDict ??= new ConcurrentDictionary<long, byte>();
+
+		var nodesPriorityOrder = failureNodeDict
+			.Select(x => (FailurePriority: x.Value, IdPriority: identityNodeDict?.GetValueOrDefault(x.Key), NodePriority: _nodePrioritiesDictionary.GetValueOrDefault(x.Key)))
+			.OrderBy(x => x.FailurePriority).ThenBy(x => x.IdPriority).ThenBy(x => x.NodePriority)
 			.ToArray();
 
-		nodesDict.TryGetValue(_nodeId, out var idPriority);
+		failureNodeDict.TryGetValue(_nodeId, out var failurePriority);
 		_nodePrioritiesDictionary.TryGetValue(_nodeId, out var nodePriority);
+		identityNodeDict.TryGetValue(_nodeId, out var idPriority);
 
-		var order = Math.Max(0, Array.IndexOf(nodesPriorityOrder, (IdPriority: idPriority, NodePriority: nodePriority)));
+		var order = Math.Max(0, Array.IndexOf(nodesPriorityOrder, (FailurePriority: failurePriority, IdPriority: idPriority, NodePriority: nodePriority)));
 
 		var priorities = string.Join(' ', nodesPriorityOrder);
-		var priority = (IdPriority: idPriority, NodePriority: nodePriority);
-		_logger.LogDebug("Priorities: [{Priorities}] Priority: [{Priority}] Order: {Order}", string.Join(' ', nodesPriorityOrder), (IdPriority: idPriority, NodePriority: nodePriority), order);
+		var priority = (FailurePriority: failurePriority, IdPriority: idPriority, NodePriority: nodePriority);
+		_logger.LogDebug("Priorities: [{Priorities}] Priority: [{Priority}] Order: {Order}", string.Join(' ', nodesPriorityOrder), (FailurePriority: failurePriority, IdPriority: idPriority, NodePriority: nodePriority), order);
 		activity?.AddTag("priorities", priorities);
 		activity?.AddTag("priority", priority);
 		activity?.AddTag("order", order);
@@ -45,21 +49,39 @@ internal class ComputedPriorityAggregator: IComputedPriorityAggregator
 		return order;
 	}
 
-	public void UpdatePriorityInformation(PriorityEvent priorityEvent)
+	public void UpdateIdentityPriorityInformation(PriorityEvent priorityEvent)
 	{
 		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityNodeTags);
 		activity?.AddTag("priority_event_id", priorityEvent.Revision);
 
-		_prioritiesDictionary.TryAdd(priorityEvent.Identity, new ConcurrentDictionary<long, byte>());
+		_identityPrioritiesDictionary.TryAdd(priorityEvent.Identity, new ConcurrentDictionary<long, byte>());
 
 		if (priorityEvent.Priority.HasValue)
 		{
 			var priority = priorityEvent.Priority.Value;
-			_prioritiesDictionary[priorityEvent.Identity].AddOrUpdate(priorityEvent.NodeId, priority, (_, _) => priority);
+			_identityPrioritiesDictionary[priorityEvent.Identity].AddOrUpdate(priorityEvent.NodeId, priority, (_, _) => priority);
 		}
 		else
 		{
-			_prioritiesDictionary[priorityEvent.Identity].TryRemove(priorityEvent.NodeId, out _);
+			_identityPrioritiesDictionary[priorityEvent.Identity].TryRemove(priorityEvent.NodeId, out _);
+		}
+	}
+
+	public void UpdateFailuresPriorityInformation(PriorityEvent priorityEvent)
+	{
+		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityNodeTags);
+		activity?.AddTag("priority_event_id", priorityEvent.Revision);
+
+		_failurePrioritiesDictionary.TryAdd(priorityEvent.Identity, new ConcurrentDictionary<long, byte>());
+
+		if (priorityEvent.Priority.HasValue)
+		{
+			var priority = priorityEvent.Priority.Value;
+			_failurePrioritiesDictionary[priorityEvent.Identity].AddOrUpdate(priorityEvent.NodeId, priority, (_, _) => priority);
+		}
+		else
+		{
+			_failurePrioritiesDictionary[priorityEvent.Identity].TryRemove(priorityEvent.NodeId, out _);
 		}
 	}
 
@@ -67,7 +89,7 @@ internal class ComputedPriorityAggregator: IComputedPriorityAggregator
 	{
 		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityNodeTags);
 
-		_prioritiesDictionary = new();
+		_failurePrioritiesDictionary = new();
 	}
 
 	public void UpdateNodePriorityInformation(NodePriorityEvent priorityEvent)
@@ -92,7 +114,8 @@ internal class ComputedPriorityAggregator: IComputedPriorityAggregator
 		_nodePrioritiesDictionary = new();
 	}
 
-	private ConcurrentDictionary <string, ConcurrentDictionary<long, byte>> _prioritiesDictionary = new ();
+	private ConcurrentDictionary <string,ConcurrentDictionary<long, byte>> _failurePrioritiesDictionary = new ();
+	private ConcurrentDictionary<string, ConcurrentDictionary<long, byte>> _identityPrioritiesDictionary = new();
 	private ConcurrentDictionary<long, byte> _nodePrioritiesDictionary = new();
 
 	private readonly long _nodeId;

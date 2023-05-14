@@ -27,9 +27,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventsAnalyser", "Experimen
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExperimentRunner", "Experiments\ExperimentRunner\ExperimentRunner.csproj", "{BB0A4BB0-1047-4BE0-8C9E-72A0BABDCE35}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTelemetry.Exporter.InfluxLineProtocolFile", "Experiments\OpenTelemetry\OpenTelemetry.Exporter.InfluxLineProtocolFile.csproj", "{2BDD3B88-5E32-4E35-9552-E8C0A888BFB0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenTelemetry.Exporter.InfluxLineProtocolFile", "Experiments\OpenTelemetry\OpenTelemetry.Exporter.InfluxLineProtocolFile.csproj", "{2BDD3B88-5E32-4E35-9552-E8C0A888BFB0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InfluxLineProtocol", "Experiments\InfluxLineProtocol\InfluxLineProtocol.csproj", "{7A708441-6704-44D0-AEC3-85E5387BA83A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InfluxLineProtocol", "Experiments\InfluxLineProtocol\InfluxLineProtocol.csproj", "{7A708441-6704-44D0-AEC3-85E5387BA83A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RecurrentWorkerService.Distributed.Prioritization.ML", "RecurrentWorkerService.Distributed.Prioritization.ML\RecurrentWorkerService.Distributed.Prioritization.ML.csproj", "{5C750A8D-CC0E-44E9-AE8C-1BAC6589A939}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecurrentWorkerService.Distributed.Prioritization.SystemMetrics", "RecurrentWorkerService.Distributed.Prioritization.SystemMetrics\RecurrentWorkerService.Distributed.Prioritization.SystemMetrics.csproj", "{1D5D11AB-ECC4-473D-99AA-32EF09B7A0C7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecurrentWorkerService.Distributed.Prioritization.ML.Server", "RecurrentWorkerService.Distributed.Prioritization.ML.Server\RecurrentWorkerService.Distributed.Prioritization.ML.Server.csproj", "{0C84F4B6-6023-4826-A6FD-ECC52B11CE3D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -89,6 +95,18 @@ Global
 		{7A708441-6704-44D0-AEC3-85E5387BA83A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7A708441-6704-44D0-AEC3-85E5387BA83A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7A708441-6704-44D0-AEC3-85E5387BA83A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C750A8D-CC0E-44E9-AE8C-1BAC6589A939}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C750A8D-CC0E-44E9-AE8C-1BAC6589A939}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C750A8D-CC0E-44E9-AE8C-1BAC6589A939}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C750A8D-CC0E-44E9-AE8C-1BAC6589A939}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1D5D11AB-ECC4-473D-99AA-32EF09B7A0C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1D5D11AB-ECC4-473D-99AA-32EF09B7A0C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1D5D11AB-ECC4-473D-99AA-32EF09B7A0C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1D5D11AB-ECC4-473D-99AA-32EF09B7A0C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0C84F4B6-6023-4826-A6FD-ECC52B11CE3D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0C84F4B6-6023-4826-A6FD-ECC52B11CE3D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0C84F4B6-6023-4826-A6FD-ECC52B11CE3D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0C84F4B6-6023-4826-A6FD-ECC52B11CE3D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

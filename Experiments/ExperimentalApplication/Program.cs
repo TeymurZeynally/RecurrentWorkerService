@@ -223,7 +223,7 @@ await Host.CreateDefaultBuilder(args)
 			},
 			x => x.SetHeartbeatExpirationTimeout(TimeSpan.FromSeconds(512)))
 			.AddEtcdPersistence(channel)
-			.AddBasicPrioritization();
+			.AddPrioritization();
 	})
 	.Build()
 	.RunAsync();
