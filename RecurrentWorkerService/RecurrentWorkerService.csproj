@@ -9,7 +9,8 @@
     <Authors>Teymur Zeynally</Authors>
     <Description>Recurrent Worker Service allows you to execute any payload on a schedule.</Description>
     <PackageProjectUrl>https://github.com/TeymurZeynally/RecurrentWorkerService</PackageProjectUrl>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <Version>1.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\README.md">
+    <None Include="..\LICENSE.txt">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>

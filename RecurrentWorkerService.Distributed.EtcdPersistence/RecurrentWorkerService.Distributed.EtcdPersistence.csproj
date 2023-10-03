@@ -9,7 +9,8 @@
     <Authors>Teymur Zeynally</Authors>
     <Description>Etcd persistence for distributed Recurrent Worker Service</Description>
     <PackageProjectUrl>https://github.com/TeymurZeynally/RecurrentWorkerService</PackageProjectUrl>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <Version>1.0.0-alpha</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\README.md">
+    <None Include="..\LICENSE.txt">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>

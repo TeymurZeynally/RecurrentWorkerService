@@ -25,7 +25,7 @@ For example interval in range 00:00:01 to 00:05:00. And workload breakpoints are
 
 ## Installation
 ```shell
-Install-Package Moss.Client
+Install-Package RecurrentWorkerService
 ```
 
 ## Payload
@@ -225,7 +225,8 @@ await Host.CreateDefaultBuilder(args)
 
 ## Installation
 ```shell
-Install-Package Moss.Client
+Install-Package RecurrentWorkerService.Distributed
+Install-Package RecurrentWorkerService.Distributed.EtcdPersistence
 ```
 
 ## Registration 
