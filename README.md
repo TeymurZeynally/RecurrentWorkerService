@@ -12,16 +12,22 @@ Runs according to the crontab schedule.
 For example **0 22 \* \* 1-5** is *At 22:00 on every day-of-week from Monday through Friday*.
 
 ## Workload 
-The iteration execution time interval is described by a certain time range. The next iteration time depends on how much work has been done in the current iteration. As a general rule, the more work, the shorter the interval. The schedule involves setting the function for calculating the interval time. There are several operations that can be applied to the duration of an interval, depending on the workload. They are: Add, Subtract, Set, Multiply, Divide. Operations are applied to the interval for workload greater than the specified breakpoint. Workload vaule is byte, and can be presented in percents.  
+The iteration execution time interval is described by a certain time range. The next iteration time depends on how much work has been done in the current iteration. As a general rule, the more work, the shorter the interval. The schedule involves setting the function for calculating the interval time. There are several operations that can be applied to the duration of an interval, depending on the workload. They are: Add, Subtract, Set, Multiply, Divide. Operations are applied to the interval for workload greater than the specified breakpoint. Workload value is byte, and can be presented in percents.  
 For example interval in range 00:00:01 to 00:05:00. And workload breakpoints are:
-- 0% Multiply by 2 times 
-- 10% Add 30 seconds
+- 0% Add 20 seconds
+- 10% Multiply twice 
 - 25% Add 10 seconds
 - 50% Subtract 30 seconds 
 - 80% Divide by 2
 - 100% Set 1 second
 
 # Usage
+
+## Installation
+```shell
+Install-Package Moss.Client
+```
+
 ## Payload
 Create a class that implements the corresponding schedule interface: IRecurrentWorker, ICronWorker, IWorkloadWorker.
 
@@ -65,13 +71,13 @@ internal class ExampleOfWorkloadWorker : IWorkloadWorker
 
 ## Registration 
 
+### Direct type registration
 ```C#
 await Host.CreateDefaultBuilder(args)
     .ConfigureServices(services =>
     {
         services.AddWorkers(w =>
         {
-            // Direct type registration
             w.AddCronWorker<ExampleOfCronWorker>(s => s
                 .SetCronExpression("* * * * *")
                 .SetRetryOnFailDelay(TimeSpan.FromSeconds(1)));
@@ -83,15 +89,26 @@ await Host.CreateDefaultBuilder(args)
             w.AddWorkloadWorker<ExampleOfWorkloadWorker>(s => s
                 .SetRange(TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(5))
                 .SetStrategies(c => c
-                    .Multiply(Workload.Zero, 2)
-                    .Add(Workload.FromPercent(10), TimeSpan.FromSeconds(30))
+                    .Add(Workload.Zero, TimeSpan.FromSeconds(30))
+                    .Multiply(Workload.FromPercent(10), 2)
                     .Add(Workload.FromPercent(25), TimeSpan.FromSeconds(10))
                     .Subtract(Workload.FromPercent(50), TimeSpan.FromSeconds(30))
                     .Divide(Workload.FromPercent(80), 2d)
                     .Set(Workload.Full, TimeSpan.FromSeconds(1)))
                 .SetRetryOnFailDelay(TimeSpan.FromSeconds(1)));
+        });
+    })
+    .Build()
+    .RunAsync();
+```
 
-            // Factory registration
+### Registration of implementation factories
+```C#
+await Host.CreateDefaultBuilder(args)
+    .ConfigureServices(services =>
+    {
+        services.AddWorkers(w =>
+        {
             w.AddCronWorker(
                 c => new ExampleOfCronWorker(c.GetRequiredService<ILogger<ExampleOfCronWorker>>()),
                 s => s
@@ -117,6 +134,80 @@ await Host.CreateDefaultBuilder(args)
     .Build()
     .RunAsync();
 ```
+### Registration using config sections
+
+#### For cron workers
+```JSON
+"WorkerSchedules": {
+    "ExampleOfSomeCronSchedule": {
+        "CronExpression": "* * * * *",
+        "RetryOnFailDelay": "00:00:01"
+    },
+}
+```
+
+#### For recurrent workers
+```JSON
+"WorkerSchedules": {
+    "ExampleOfSomeRecurrentSchedule": {
+        "Period": "00:00:02",
+        "RetryOnFailDelay": "00:00:01"
+    },
+}
+```
+
+#### For workload workers
+```JSON
+"WorkerSchedules": {
+    "ExampleOfSomeWorkloadSchedule": {
+        "PeriodFrom": "00:00:01",
+        "PeriodTo": "00:05:00",
+        "RetryOnFailDelay": "00:00:01"
+    },
+
+    "ExampleOfSomeWorkloadScheduleWithStrategies": {
+        "PeriodFrom": "00:00:01",
+        "PeriodTo": "00:05:00",
+        "RetryOnFailDelay": "00:00:01",
+        "Strategies": [
+            { "Workload": 0, "Action": "Add", "ActionPeriod": "00:00:01" },
+            { "Workload": 50, "Action": "Add", "ActionPeriod": "00:00:05" },
+            { "Workload": 100, "Action": "Multiply", "ActionCoefficient": 2 },
+            { "Workload": 125, "Action": "Subtract", "ActionPeriod": "00:00:05" },
+            { "Workload": 200, "Action": "Divide", "ActionCoefficient": 2 },
+            { "Workload": 255, "Action": "Set", "ActionPeriod": "00:00:01" }
+        ]
+    }
+}
+```
+
+#### Registration
+```C#
+await Host.CreateDefaultBuilder(args)
+    .ConfigureServices((context, services) =>
+    {
+        services.AddWorkers(w =>
+        {
+            w.AddCronWorker(
+                c => new ExampleOfCronWorker(c.GetRequiredService<ILogger<ExampleOfCronWorker>>()),
+                s => s.FromConfigSection(context.Configuration.GetRequiredSection("WorkerSchedules:ExampleOfSomeCronSchedule")));
+
+            w.AddRecurrentWorker(
+                c => new ExampleOfRecurrentWorker(c.GetRequiredService<ILogger<ExampleOfRecurrentWorker>>()),
+                s => s.FromConfigSection(context.Configuration.GetRequiredSection("WorkerSchedules:ExampleOfSomeRecurrentSchedule")));
+
+            w.AddWorkloadWorker(
+                c => new ExampleOfWorkloadWorker(c.GetRequiredService<ILogger<ExampleOfWorkloadWorker>>()),
+                s => s.FromConfigSection(context.Configuration.GetRequiredSection("WorkerSchedules:ExampleOfSomeWorkloadSchedule")));
+
+            w.AddWorkloadWorker(
+                c => new ExampleOfWorkloadWorker(c.GetRequiredService<ILogger<ExampleOfWorkloadWorker>>()),
+                s => s.FromConfigSection(context.Configuration.GetRequiredSection("WorkerSchedules:ExampleOfSomeWorkloadScheduleWithStrategies")));
+        });
+    })
+    .Build()
+    .RunAsync();
+```
 
 # Distributed
 
@@ -132,8 +223,13 @@ await Host.CreateDefaultBuilder(args)
 ## Scheme
 ![Scheme](README-Distributed-Scheme.svg)
 
+## Installation
+```shell
+Install-Package Moss.Client
+```
+
 ## Registration 
-You must specify the service ID and the ID of the registered worker. According to these identifiers, the service will organize the keys in the storage.
+You have to specify the service ID and the ID of the registered worker. According to these identifiers, the service will organize the keys in the storage.
 ```C#
 var factory = new StaticResolverFactory(addr => new[]
 {

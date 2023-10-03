@@ -4,11 +4,13 @@
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>$(AssemblyName)</Title>
+    <Authors>Teymur Zeynally</Authors>
+    <Description>Etcd persistence for distributed Recurrent Worker Service</Description>
+    <PackageProjectUrl>https://github.com/TeymurZeynally/RecurrentWorkerService</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
-
-	<ItemGroup>
-		<InternalsVisibleTo Include="RecurrentWorkerService.Distributed.EtcdPersistence.Tests" />
-	</ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.21.11" />
@@ -17,6 +19,13 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

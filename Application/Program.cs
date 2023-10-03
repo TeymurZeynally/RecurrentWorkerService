@@ -60,8 +60,8 @@ await Host.CreateDefaultBuilder(args)
 			w.AddWorkloadWorker<ExampleOfWorkloadWorker>(s => s
 				.SetRange(TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(5))
 				.SetStrategies(c => c
-					.Multiply(Workload.Zero, 2)
-					.Add(Workload.FromPercent(10), TimeSpan.FromSeconds(30))
+					.Add(Workload.Zero, TimeSpan.FromSeconds(30))
+					.Multiply(Workload.FromPercent(10), 2)
 					.Add(Workload.FromPercent(25), TimeSpan.FromSeconds(10))
 					.Subtract(Workload.FromPercent(50), TimeSpan.FromSeconds(30))
 					.Divide(Workload.FromPercent(80), 2d)
