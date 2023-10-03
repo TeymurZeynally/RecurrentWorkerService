@@ -31,6 +31,8 @@ internal class WorkloadWorkerService : IWorkerService
 
 	public async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
+		var delay = _schedule.PeriodFrom + _schedule.PeriodTo / 2;
+
 		while (!stoppingToken.IsCancellationRequested)
 		{
 			using var _ = _logger.BeginScope(Guid.NewGuid().ToString());
@@ -40,7 +42,6 @@ internal class WorkloadWorkerService : IWorkerService
 			_stopwatch.Restart();
 			var isError = false;
 			var workload = Workload.Zero;
-			var delay = _schedule.PeriodFrom + _schedule.PeriodTo / 2;
 			try
 			{
 				_logger.LogDebug($"[{worker}] Start");
