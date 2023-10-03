@@ -1,5 +1,3 @@
->## ⚠️ **Warning**: Solution is not ready for production use
-
 # Description
 **RecurrentWorkerService** allows you to execute any payload on a schedule. There are three types of schedules: Recurrent, Cron and based on Workload. The **RecurrentWorkerService** supports etcd persistence for iteration coordination and fault tolerance.
 
