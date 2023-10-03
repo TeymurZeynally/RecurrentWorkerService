@@ -30,8 +30,8 @@ public class RecurrentScheduleBuilder : ScheduleBuilder
 
 	internal new RecurrentSchedule Build()
 	{
-		Debug.Assert(_schedule.Period < TimeSpan.Zero, "Period can not be negative");
-		Debug.Assert(_schedule.RetryOnFailDelay != null && _schedule.RetryOnFailDelay < TimeSpan.Zero, "RetryOnFailDelay can not be negative");
+		Debug.Assert(_schedule.Period >= TimeSpan.Zero, "Period can not be negative");
+		Debug.Assert(_schedule.RetryOnFailDelay == null || _schedule.RetryOnFailDelay >= TimeSpan.Zero, "RetryOnFailDelay can not be negative");
 
 		return _schedule;
 	}

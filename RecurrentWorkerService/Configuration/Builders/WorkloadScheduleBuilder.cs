@@ -43,11 +43,11 @@ public class WorkloadScheduleBuilder : ScheduleBuilder
 
 	internal new WorkloadSchedule Build()
 	{
-		Debug.Assert(_schedule.PeriodFrom < TimeSpan.Zero, "PeriodFrom can not be negative");
-		Debug.Assert(_schedule.PeriodTo < TimeSpan.Zero, "PeriodTo can not be negative");
-		Debug.Assert(_schedule.RetryOnFailDelay != null && _schedule.RetryOnFailDelay < TimeSpan.Zero, "RetryOnFailDelay can not be negative");
+		Debug.Assert(_schedule.PeriodFrom >= TimeSpan.Zero, "PeriodFrom can not be negative");
+		Debug.Assert(_schedule.PeriodTo >= TimeSpan.Zero, "PeriodTo can not be negative");
+		Debug.Assert(_schedule.RetryOnFailDelay == null || _schedule.RetryOnFailDelay >= TimeSpan.Zero, "RetryOnFailDelay can not be negative");
 		Debug.Assert(_schedule.Strategies != null, "Strategies can not be null");
-		Debug.Assert(_schedule.Strategies.Any(x => x is { Action: StrategyAction.Divide, ActionCoefficient: 0 }), "Strategy can not contain division by zero");
+		Debug.Assert(!_schedule.Strategies.Any(x => x is { Action: StrategyAction.Divide, ActionCoefficient: 0 }), "Strategy can not contain division by zero");
 
 		return _schedule;
 	}

@@ -31,7 +31,7 @@ public class CronScheduleBuilder : ScheduleBuilder
 	internal new CronSchedule Build()
 	{
 		Debug.Assert(_schedule.CronExpression != null, "Cron expression is not provided");
-		Debug.Assert(_schedule.RetryOnFailDelay != null && _schedule.RetryOnFailDelay < TimeSpan.Zero, "RetryOnFailDelay can not be negative");
+		Debug.Assert(_schedule.RetryOnFailDelay == null || _schedule.RetryOnFailDelay >= TimeSpan.Zero, "RetryOnFailDelay can not be negative");
 
 		return _schedule;
 	}
