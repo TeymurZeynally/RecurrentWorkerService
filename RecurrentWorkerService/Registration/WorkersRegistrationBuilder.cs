@@ -18,11 +18,11 @@ public class WorkersRegistrationBuilder
 		_services = services;
 	}
 
-	public WorkersRegistrationBuilder AddRecurrentWorker<TWorker>(Action<RecurrentScheduleBuilder> scheduleBuilderAction)
+	public WorkersRegistrationBuilder AddRecurrentWorker<TWorker>(Action<RecurrentScheduleBuilder>? scheduleBuilderAction = null)
 		where TWorker : class, IRecurrentWorker
 	{
 		var scheduleBuilder = new RecurrentScheduleBuilder(new RecurrentSchedule());
-		scheduleBuilderAction(scheduleBuilder);
+		scheduleBuilderAction?.Invoke(scheduleBuilder);
 
 		_services.AddTransient<TWorker>();
 		_services.TryAddSingleton<RecurrentWorkerExecutionDelayCalculator>();
@@ -36,10 +36,10 @@ public class WorkersRegistrationBuilder
 
 	public WorkersRegistrationBuilder AddRecurrentWorker(
 		Func<IServiceProvider, IRecurrentWorker> implementationFactory,
-		Action<RecurrentScheduleBuilder> scheduleBuilderAction)
+		Action<RecurrentScheduleBuilder>? scheduleBuilderAction = null)
 	{
 		var scheduleBuilder = new RecurrentScheduleBuilder(new RecurrentSchedule());
-		scheduleBuilderAction(scheduleBuilder);
+		scheduleBuilderAction?.Invoke(scheduleBuilder);
 
 		_services.TryAddSingleton<RecurrentWorkerExecutionDelayCalculator>();
 		_services.AddTransient<IWorkerService>(s => new Services.RecurrentWorkerService(
@@ -50,11 +50,11 @@ public class WorkersRegistrationBuilder
 		return this;
 	}
 
-	public WorkersRegistrationBuilder AddCronWorker<TWorker>(Action<CronScheduleBuilder> scheduleBuilderAction)
+	public WorkersRegistrationBuilder AddCronWorker<TWorker>(Action<CronScheduleBuilder>? scheduleBuilderAction = null)
 		where TWorker : class, ICronWorker
 	{
 		var scheduleBuilder = new CronScheduleBuilder(new CronSchedule());
-		scheduleBuilderAction(scheduleBuilder);
+		scheduleBuilderAction?.Invoke(scheduleBuilder);
 
 		_services.AddTransient<TWorker>();
 		_services.TryAddSingleton<CronWorkerExecutionDelayCalculator>();
@@ -68,10 +68,10 @@ public class WorkersRegistrationBuilder
 
 	public WorkersRegistrationBuilder AddCronWorker(
 		Func<IServiceProvider, ICronWorker> implementationFactory,
-		Action<CronScheduleBuilder> scheduleBuilderAction)
+		Action<CronScheduleBuilder>? scheduleBuilderAction = null)
 	{
 		var scheduleBuilder = new CronScheduleBuilder(new CronSchedule());
-		scheduleBuilderAction(scheduleBuilder);
+		scheduleBuilderAction?.Invoke(scheduleBuilder);
 
 		_services.TryAddSingleton<CronWorkerExecutionDelayCalculator>();
 		_services.AddTransient<IWorkerService>(s => new CronWorkerService(
@@ -82,11 +82,11 @@ public class WorkersRegistrationBuilder
 		return this;
 	}
 
-	public WorkersRegistrationBuilder AddWorkloadWorker<TWorker>(Action<WorkloadScheduleBuilder> scheduleBuilderAction)
+	public WorkersRegistrationBuilder AddWorkloadWorker<TWorker>(Action<WorkloadScheduleBuilder>? scheduleBuilderAction = null)
 		where TWorker : class, IWorkloadWorker
 	{
 		var scheduleBuilder = new WorkloadScheduleBuilder(new WorkloadSchedule());
-		scheduleBuilderAction(scheduleBuilder);
+		scheduleBuilderAction?.Invoke(scheduleBuilder);
 
 		_services.AddTransient<TWorker>();
 		_services.TryAddSingleton<WorkloadWorkerExecutionDelayCalculator>();
@@ -100,10 +100,10 @@ public class WorkersRegistrationBuilder
 
 	public WorkersRegistrationBuilder AddWorkloadWorker(
 		Func<IServiceProvider, IWorkloadWorker> implementationFactory,
-		Action<WorkloadScheduleBuilder> scheduleBuilderAction)
+		Action<WorkloadScheduleBuilder>? scheduleBuilderAction = null)
 	{
 		var scheduleBuilder = new WorkloadScheduleBuilder(new WorkloadSchedule());
-		scheduleBuilderAction(scheduleBuilder);
+		scheduleBuilderAction?.Invoke(scheduleBuilder);
 
 		_services.TryAddSingleton<WorkloadWorkerExecutionDelayCalculator>();
 		_services.AddTransient<IWorkerService>(s => new WorkloadWorkerService(
