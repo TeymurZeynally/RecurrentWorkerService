@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using Etcdserverpb;
@@ -14,11 +15,13 @@ namespace RecurrentWorkerService.Distributed.EtcdPersistence.Persistence;
 
 internal class EtcdPersistence: IPersistence
 {
-	public EtcdPersistence(ILogger<EtcdPersistence> logger, ChannelBase channel, string serviceId, long nodeId)
+	public EtcdPersistence(ILogger<EtcdPersistence> logger, ChannelBase channel, string serviceId, long nodeId, ActivitySource activitySource)
 	{
 		_logger = logger;
-		_nodeId = nodeId;
 		_serviceId = serviceId;
+		_nodeId = nodeId;
+		_activitySource = activitySource;
+		_activityTags = new[] { new KeyValuePair<string, object?>("node", nodeId) };
 		_lockClient = new Lock.LockClient(channel);
 		_leaseClient = new Lease.LeaseClient(channel);
 		_kvClient = new KV.KVClient(channel);
@@ -27,6 +30,8 @@ internal class EtcdPersistence: IPersistence
 	public async Task<string?> AcquireExecutionLockAsync(string identity, CancellationToken cancellationToken)
 	{
 		await WaitForLeaseAsync();
+
+		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityTags);
 
 		var response = await _lockClient.LockAsync(
 			new LockRequest { Lease = _nodeId, Name = ByteString.CopyFromUtf8(GetKeyForExecutionLock(identity)) },
@@ -37,8 +42,10 @@ internal class EtcdPersistence: IPersistence
 
 	public async Task<PersistenceResponse> SucceededAsync(string identity, long scheduleIndex, TimeSpan lifetime, CancellationToken cancellationToken)
 	{
+		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityTags);
+
 		var lease = await _leaseClient.LeaseGrantAsync(
-			new LeaseGrantRequest { TTL = (long)lifetime.TotalSeconds },
+			new LeaseGrantRequest { TTL = (long)lifetime.TotalSeconds + 512 },
 			cancellationToken: cancellationToken);
 		var response = await _kvClient.PutAsync(
 			new PutRequest { Key = ByteString.CopyFromUtf8(GetKeyForSucceededIteration(identity, scheduleIndex)), Lease = lease.ID},
@@ -49,6 +56,8 @@ internal class EtcdPersistence: IPersistence
 
 	public async Task<PersistenceResponse<bool>> IsSucceededAsync(string identity, long scheduleIndex, CancellationToken cancellationToken)
 	{
+		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityTags);
+
 		var result = await _kvClient.RangeAsync(
 			new RangeRequest { CountOnly = true, Key = ByteString.CopyFromUtf8(GetKeyForSucceededIteration(identity, scheduleIndex)) },
 			cancellationToken: cancellationToken);
@@ -58,6 +67,8 @@ internal class EtcdPersistence: IPersistence
 
 	public async Task HeartbeatAsync(TimeSpan expiration, CancellationToken cancellationToken)
 	{
+		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityTags);
+
 		while (!cancellationToken.IsCancellationRequested)
 		{
 			try
@@ -88,6 +99,8 @@ internal class EtcdPersistence: IPersistence
 
 	public async Task ReleaseExecutionLockAsync(string lockId, CancellationToken cancellationToken)
 	{
+		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityTags);
+
 		await _lockClient.UnlockAsync(
 			new UnlockRequest { Key = ByteString.CopyFromUtf8(lockId) },
 			cancellationToken: cancellationToken);
@@ -96,6 +109,8 @@ internal class EtcdPersistence: IPersistence
 
 	public async Task<PersistenceResponse<WorkloadInfo?>?> GetCurrentWorkloadAsync(string identity, CancellationToken cancellationToken)
 	{
+		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityTags);
+
 		var response = await _kvClient.RangeAsync(
 			new RangeRequest { Key = ByteString.CopyFromUtf8(GetKeyForWorkload(identity)), Limit = 1 },
 			cancellationToken: cancellationToken);
@@ -114,6 +129,8 @@ internal class EtcdPersistence: IPersistence
 
 	public async Task<PersistenceResponse> UpdateWorkloadAsync(string identity, WorkloadInfo workloadInfo, TimeSpan lifetime, CancellationToken cancellationToken)
 	{
+		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityTags);
+
 		var lease = await _leaseClient.LeaseGrantAsync(
 			new LeaseGrantRequest { TTL = (long)lifetime.TotalSeconds },
 			cancellationToken: cancellationToken);
@@ -132,6 +149,8 @@ internal class EtcdPersistence: IPersistence
 
 	public async Task UpdatePriorityAsync(string identity, byte priority, CancellationToken cancellationToken)
 	{
+		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityTags);
+
 		await WaitForLeaseAsync();
 		await _kvClient.PutAsync(new PutRequest
 			{
@@ -145,6 +164,9 @@ internal class EtcdPersistence: IPersistence
 	public async Task UpdateNodePriorityAsync(byte priority, CancellationToken cancellationToken)
 	{
 		await WaitForLeaseAsync();
+
+		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityTags);
+
 		await _kvClient.PutAsync(new PutRequest
 			{
 				Lease = _nodeId,
@@ -163,7 +185,7 @@ internal class EtcdPersistence: IPersistence
 			var node = Convert.ToInt64(keyParts[3]);
 			var priority = kv.Value.IsEmpty ? default(byte?) : kv.Value.ToByteArray().Single();
 
-			return new PriorityEvent { Identity = identity, NodeId = node, Priority = priority };
+			return new PriorityEvent { Revision = kv.ModRevision, Identity = identity, NodeId = node, Priority = priority };
 		};
 
 		return WatchUpdates(GetSearchKeyForIterationPriority(), ConvertToPriorityEvent, cancellationToken);
@@ -177,7 +199,7 @@ internal class EtcdPersistence: IPersistence
 			var node = Convert.ToInt64(keyParts[2]);
 			var priority = kv.Value.IsEmpty ? default(byte?) : kv.Value.ToByteArray().Single();
 
-			return new NodePriorityEvent { NodeId = node, Priority = priority };
+			return new NodePriorityEvent { Revision = kv.ModRevision, NodeId = node, Priority = priority };
 		};
 
 		return WatchUpdates(GetSearchKeyForNodePriority(), ConvertToPriorityEvent, cancellationToken);
@@ -245,6 +267,8 @@ internal class EtcdPersistence: IPersistence
 
 	private async Task WaitForLeaseAsync()
 	{
+		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityTags);
+
 		for (int count = 0; count < 3; count++)
 		{
 			if (_serviceLeaseCreated)
@@ -285,6 +309,9 @@ internal class EtcdPersistence: IPersistence
 	private readonly ILogger<EtcdPersistence> _logger;
 	private readonly long _nodeId;
 	private readonly string _serviceId;
+	private readonly ActivitySource _activitySource;
+	private readonly KeyValuePair<string, object?>[] _activityTags;
+
 	private readonly Lock.LockClient _lockClient;
 	private readonly Lease.LeaseClient _leaseClient;
 	private readonly KV.KVClient _kvClient;

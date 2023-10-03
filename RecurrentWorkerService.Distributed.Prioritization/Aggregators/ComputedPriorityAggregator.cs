@@ -1,25 +1,28 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using RecurrentWorkerService.Distributed.Interfaces.Persistence.Models;
 
 namespace RecurrentWorkerService.Distributed.Prioritization.Aggregators;
 
 internal class ComputedPriorityAggregator: IComputedPriorityAggregator
 {
-	public ComputedPriorityAggregator(long nodeId)
+	public ComputedPriorityAggregator(long nodeId, ActivitySource activitySource, ILogger<ComputedPriorityAggregator> logger)
 	{
 		_nodeId = nodeId;
+		_activitySource = activitySource;
+		_activityNodeTags = new[] { new KeyValuePair<string, object?>("node", nodeId) };
+		_logger = logger;
 	}
 
 	public int GetNodeOrder(string identity)
 	{
+		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityNodeTags);
+
 		if (!_prioritiesDictionary.TryGetValue(identity, out var nodesDict))
 		{
 			return 0;
 		}
-
-		var sw = new Stopwatch();
-		sw.Start();
 
 		var nodesPriorityOrder = nodesDict
 			.Select(x => (IdPriority: x.Value, NodePriority: _nodePrioritiesDictionary.GetValueOrDefault(x.Key)))
@@ -31,17 +34,22 @@ internal class ComputedPriorityAggregator: IComputedPriorityAggregator
 
 		var order = Math.Max(0, Array.IndexOf(nodesPriorityOrder, (IdPriority: idPriority, NodePriority: nodePriority)));
 
-		Console.ForegroundColor = ConsoleColor.Cyan;
-		Console.WriteLine("[||||||||||||||||||||||||||||||||||]");
-		Console.WriteLine($"ELAPSED: {sw.Elapsed}; PRIORITIES: [{string.Join(' ', nodesPriorityOrder)}]  PRIORITY: {(IdPriority: idPriority, NodePriority: nodePriority)} ORDER: {order}");
-		Console.WriteLine("[||||||||||||||||||||||||||||||||||]");
-		Console.ResetColor();
+		var priorities = string.Join(' ', nodesPriorityOrder);
+		var priority = (IdPriority: idPriority, NodePriority: nodePriority);
+		_logger.LogDebug("Priorities: [{Priorities}] Priority: [{Priority}] Order: {Order}", string.Join(' ', nodesPriorityOrder), (IdPriority: idPriority, NodePriority: nodePriority), order);
+		activity?.AddTag("priorities", priorities);
+		activity?.AddTag("priority", priority);
+		activity?.AddTag("order", order);
+		activity?.AddTag("identity", identity);
 
 		return order;
 	}
 
 	public void UpdatePriorityInformation(PriorityEvent priorityEvent)
 	{
+		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityNodeTags);
+		activity?.AddTag("priority_event_id", priorityEvent.Revision);
+
 		_prioritiesDictionary.TryAdd(priorityEvent.Identity, new ConcurrentDictionary<long, byte>());
 
 		if (priorityEvent.Priority.HasValue)
@@ -57,23 +65,30 @@ internal class ComputedPriorityAggregator: IComputedPriorityAggregator
 
 	public void ResetPriorityInformation()
 	{
+		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityNodeTags);
+
 		_prioritiesDictionary = new();
 	}
 
-	public void UpdateNodePriorityInformation(long nodeId, byte? priority)
+	public void UpdateNodePriorityInformation(NodePriorityEvent priorityEvent)
 	{
-		if (priority.HasValue)
+		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityNodeTags);
+		activity?.AddTag("priority_event_id", priorityEvent.Revision);
+
+		if (priorityEvent.Priority.HasValue)
 		{
-			_nodePrioritiesDictionary.AddOrUpdate(nodeId, priority.Value, (_, _) => priority.Value);
+			_nodePrioritiesDictionary.AddOrUpdate(priorityEvent.NodeId, priorityEvent.Priority.Value, (_, _) => priorityEvent.Priority.Value);
 		}
 		else
 		{
-			_nodePrioritiesDictionary.TryRemove(nodeId, out _);
+			_nodePrioritiesDictionary.TryRemove(priorityEvent.NodeId, out _);
 		}
 	}
 
 	public void ResetNodePriorityInformation()
 	{
+		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityNodeTags);
+
 		_nodePrioritiesDictionary = new();
 	}
 
@@ -81,4 +96,8 @@ internal class ComputedPriorityAggregator: IComputedPriorityAggregator
 	private ConcurrentDictionary<long, byte> _nodePrioritiesDictionary = new();
 
 	private readonly long _nodeId;
+	private readonly ActivitySource _activitySource;
+	private readonly ILogger<ComputedPriorityAggregator> _logger;
+
+	private readonly KeyValuePair<string, object?>[] _activityNodeTags;
 }

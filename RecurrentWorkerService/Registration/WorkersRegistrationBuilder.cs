@@ -27,10 +27,10 @@ public class WorkersRegistrationBuilder
 		_services.AddTransient<TWorker>();
 		_services.TryAddSingleton<RecurrentWorkerExecutionDelayCalculator>();
 		_services.AddTransient<IWorkerService>(s => new Services.RecurrentWorkerService(
-			s.GetService<ILogger<Services.RecurrentWorkerService>>()!,
-			() => s.GetService<TWorker>()!,
+			s.GetRequiredService<ILogger<Services.RecurrentWorkerService>>(),
+			s.GetRequiredService<TWorker>,
 			scheduleBuilder.Build(),
-			s.GetService<RecurrentWorkerExecutionDelayCalculator>()!));
+			s.GetRequiredService<RecurrentWorkerExecutionDelayCalculator>()));
 		return this;
 	}
 
@@ -43,10 +43,10 @@ public class WorkersRegistrationBuilder
 
 		_services.TryAddSingleton<RecurrentWorkerExecutionDelayCalculator>();
 		_services.AddTransient<IWorkerService>(s => new Services.RecurrentWorkerService(
-			s.GetService<ILogger<Services.RecurrentWorkerService>>()!,
+			s.GetRequiredService<ILogger<Services.RecurrentWorkerService>>(),
 			() => implementationFactory(s),
 			scheduleBuilder.Build(),
-			s.GetService<RecurrentWorkerExecutionDelayCalculator>()!));
+			s.GetRequiredService<RecurrentWorkerExecutionDelayCalculator>()));
 		return this;
 	}
 
@@ -59,10 +59,10 @@ public class WorkersRegistrationBuilder
 		_services.AddTransient<TWorker>();
 		_services.TryAddSingleton<CronWorkerExecutionDelayCalculator>();
 		_services.AddTransient<IWorkerService>(s => new CronWorkerService(
-			s.GetService<ILogger<CronWorkerService>>()!,
-			() => s.GetService<TWorker>()!,
+			s.GetRequiredService<ILogger<CronWorkerService>>(),
+			s.GetRequiredService<TWorker>,
 			scheduleBuilder.Build(),
-			s.GetService<CronWorkerExecutionDelayCalculator>()!));
+			s.GetRequiredService<CronWorkerExecutionDelayCalculator>()));
 		return this;
 	}
 
@@ -75,10 +75,10 @@ public class WorkersRegistrationBuilder
 
 		_services.TryAddSingleton<CronWorkerExecutionDelayCalculator>();
 		_services.AddTransient<IWorkerService>(s => new CronWorkerService(
-			s.GetService<ILogger<CronWorkerService>>()!,
+			s.GetRequiredService<ILogger<CronWorkerService>>(),
 			() => implementationFactory(s),
 			scheduleBuilder.Build(),
-			s.GetService<CronWorkerExecutionDelayCalculator>()!));
+			s.GetRequiredService<CronWorkerExecutionDelayCalculator>()));
 		return this;
 	}
 
@@ -91,10 +91,10 @@ public class WorkersRegistrationBuilder
 		_services.AddTransient<TWorker>();
 		_services.TryAddSingleton<WorkloadWorkerExecutionDelayCalculator>();
 		_services.AddTransient<IWorkerService>(s => new WorkloadWorkerService(
-			s.GetService<ILogger<WorkloadWorkerService>>()!,
-			() => s.GetService<TWorker>()!,
+			s.GetRequiredService<ILogger<WorkloadWorkerService>>(),
+			s.GetRequiredService<TWorker>,
 			scheduleBuilder.Build(),
-			s.GetService<WorkloadWorkerExecutionDelayCalculator>()!));
+			s.GetRequiredService<WorkloadWorkerExecutionDelayCalculator>()));
 		return this;
 	}
 
@@ -107,10 +107,10 @@ public class WorkersRegistrationBuilder
 
 		_services.TryAddSingleton<WorkloadWorkerExecutionDelayCalculator>();
 		_services.AddTransient<IWorkerService>(s => new WorkloadWorkerService(
-			s.GetService<ILogger<WorkloadWorkerService>>()!,
+			s.GetRequiredService<ILogger<WorkloadWorkerService>>(),
 			() => implementationFactory(s),
 			scheduleBuilder.Build(),
-			s.GetService<WorkloadWorkerExecutionDelayCalculator>()!));
+			s.GetRequiredService<WorkloadWorkerExecutionDelayCalculator>()));
 		return this;
 	}
 }

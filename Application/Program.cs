@@ -11,9 +11,9 @@ using RecurrentWorkerService.Workers.Models;
 
 var factory = new StaticResolverFactory(addr => new[]
 {
-	new BalancerAddress("192.168.1.74", 23791),
-	new BalancerAddress("192.168.1.74", 23792),
-	new BalancerAddress("192.168.1.74", 23793),
+	new BalancerAddress("localhost", 23791),
+	new BalancerAddress("localhost", 23792),
+	new BalancerAddress("localhost", 23793),
 });
 
 var channel = GrpcChannel.ForAddress(
@@ -113,12 +113,14 @@ await Host.CreateDefaultBuilder(args)
 				    s => s
 						.SetPeriod(TimeSpan.FromSeconds(5))
 						.SetRetryOnFailDelay(TimeSpan.Zero));
-				
+
 				w.AddDistributedWorkloadWorker<ExampleOfWorkloadWorker>(
 					"WorkloadWorker-1",
-					s => s.SetRange(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10))
-						.SetStrategies(c => c.Add(Workload.Zero, TimeSpan.FromSeconds(1))
-						.Subtract(Workload.FromPercent(50), TimeSpan.FromSeconds(1))));
+					s => s
+						.SetRange(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10))
+						.SetStrategies(c => c
+							.Add(Workload.Zero, TimeSpan.FromSeconds(1))
+							.Subtract(Workload.FromPercent(50), TimeSpan.FromSeconds(1))));
 			})
 			.AddEtcdPersistence(channel)
 			.AddBasicPrioritization();	

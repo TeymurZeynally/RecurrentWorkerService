@@ -13,9 +13,23 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RecurrentWorkerService.Dist
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RecurrentWorkerService.Distributed.Prioritization", "RecurrentWorkerService.Distributed.Prioritization\RecurrentWorkerService.Distributed.Prioritization.csproj", "{5B3F33F5-D298-4DDE-A6ED-8C9886B49A0F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecurrentWorkerService.Distributed.EtcdPersistence.Tests", "RecurrentWorkerService.Distributed.EtcdPersistence.Tests\RecurrentWorkerService.Distributed.EtcdPersistence.Tests.csproj", "{344C4F95-6B8E-46D0-873C-2B1C8A35C3B8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RecurrentWorkerService.Distributed.EtcdPersistence.Tests", "RecurrentWorkerService.Distributed.EtcdPersistence.Tests\RecurrentWorkerService.Distributed.EtcdPersistence.Tests.csproj", "{344C4F95-6B8E-46D0-873C-2B1C8A35C3B8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecurrentWorkerService.Distributed.Interfaces", "RecurrentWorkerService.Distributed.Interfaces\RecurrentWorkerService.Distributed.Interfaces.csproj", "{8F121BD8-9F1B-4611-B350-1F8916D93B71}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RecurrentWorkerService.Distributed.Interfaces", "RecurrentWorkerService.Distributed.Interfaces\RecurrentWorkerService.Distributed.Interfaces.csproj", "{8F121BD8-9F1B-4611-B350-1F8916D93B71}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Experiments", "Experiments", "{50AC30D0-6741-4183-8F95-1D28C79C30B4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExperimentalApplication", "Experiments\ExperimentalApplication\ExperimentalApplication.csproj", "{F69EB547-988C-441A-BD7C-84445C3A44FF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EtcdEventsCollector", "Experiments\EtcdEventsCollector\EtcdEventsCollector.csproj", "{B9200D43-86D7-4639-8521-CE2FFD9649DD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventsAnalyser", "Experiments\EventsAnalyser\EventsAnalyser.csproj", "{ED762548-66CC-47D9-A61C-B8C23318C96F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExperimentRunner", "Experiments\ExperimentRunner\ExperimentRunner.csproj", "{BB0A4BB0-1047-4BE0-8C9E-72A0BABDCE35}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTelemetry.Exporter.InfluxLineProtocolFile", "Experiments\OpenTelemetry\OpenTelemetry.Exporter.InfluxLineProtocolFile.csproj", "{2BDD3B88-5E32-4E35-9552-E8C0A888BFB0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InfluxLineProtocol", "Experiments\InfluxLineProtocol\InfluxLineProtocol.csproj", "{7A708441-6704-44D0-AEC3-85E5387BA83A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,9 +65,41 @@ Global
 		{8F121BD8-9F1B-4611-B350-1F8916D93B71}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8F121BD8-9F1B-4611-B350-1F8916D93B71}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8F121BD8-9F1B-4611-B350-1F8916D93B71}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F69EB547-988C-441A-BD7C-84445C3A44FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F69EB547-988C-441A-BD7C-84445C3A44FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F69EB547-988C-441A-BD7C-84445C3A44FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F69EB547-988C-441A-BD7C-84445C3A44FF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9200D43-86D7-4639-8521-CE2FFD9649DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9200D43-86D7-4639-8521-CE2FFD9649DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9200D43-86D7-4639-8521-CE2FFD9649DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9200D43-86D7-4639-8521-CE2FFD9649DD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED762548-66CC-47D9-A61C-B8C23318C96F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED762548-66CC-47D9-A61C-B8C23318C96F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED762548-66CC-47D9-A61C-B8C23318C96F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED762548-66CC-47D9-A61C-B8C23318C96F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB0A4BB0-1047-4BE0-8C9E-72A0BABDCE35}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB0A4BB0-1047-4BE0-8C9E-72A0BABDCE35}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB0A4BB0-1047-4BE0-8C9E-72A0BABDCE35}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB0A4BB0-1047-4BE0-8C9E-72A0BABDCE35}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2BDD3B88-5E32-4E35-9552-E8C0A888BFB0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2BDD3B88-5E32-4E35-9552-E8C0A888BFB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2BDD3B88-5E32-4E35-9552-E8C0A888BFB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2BDD3B88-5E32-4E35-9552-E8C0A888BFB0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7A708441-6704-44D0-AEC3-85E5387BA83A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7A708441-6704-44D0-AEC3-85E5387BA83A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7A708441-6704-44D0-AEC3-85E5387BA83A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7A708441-6704-44D0-AEC3-85E5387BA83A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F69EB547-988C-441A-BD7C-84445C3A44FF} = {50AC30D0-6741-4183-8F95-1D28C79C30B4}
+		{B9200D43-86D7-4639-8521-CE2FFD9649DD} = {50AC30D0-6741-4183-8F95-1D28C79C30B4}
+		{ED762548-66CC-47D9-A61C-B8C23318C96F} = {50AC30D0-6741-4183-8F95-1D28C79C30B4}
+		{BB0A4BB0-1047-4BE0-8C9E-72A0BABDCE35} = {50AC30D0-6741-4183-8F95-1D28C79C30B4}
+		{2BDD3B88-5E32-4E35-9552-E8C0A888BFB0} = {50AC30D0-6741-4183-8F95-1D28C79C30B4}
+		{7A708441-6704-44D0-AEC3-85E5387BA83A} = {50AC30D0-6741-4183-8F95-1D28C79C30B4}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {178F5451-9534-4E21-AADE-4B0F50A6F17E}

@@ -1,4 +1,5 @@
-﻿using Grpc.Core;
+﻿using System.Diagnostics;
+using Grpc.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using RecurrentWorkerService.Distributed.Interfaces.Persistence;
@@ -11,13 +12,17 @@ public static class DistributedWorkersBuilderExtensions
 	public static IDistributedWorkersBuilder AddEtcdPersistence(
 		this IDistributedWorkersBuilder builder, ChannelBase channelBase)
 	{
+		var assembly = System.Reflection.Assembly.GetExecutingAssembly().GetName();
+		var activitySource = new ActivitySource(assembly.Name!, assembly.Version?.ToString());
+
 		builder.Services.AddSingleton(channelBase);
 		builder.Services.AddSingleton<IPersistence>(
 			s => new Persistence.EtcdPersistence(
-				s.GetService<ILogger<Persistence.EtcdPersistence>>()!,
-				s.GetService<ChannelBase>()!,
+				s.GetRequiredService<ILogger<Persistence.EtcdPersistence>>(),
+				s.GetRequiredService<ChannelBase>(),
 				builder.ServiceName,
-				builder.NodeId));
+				builder.NodeId,
+				activitySource));
 
 		return builder;
 	}

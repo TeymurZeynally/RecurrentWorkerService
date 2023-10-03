@@ -63,8 +63,8 @@ internal class PriorityService : BackgroundService
 				_logger.LogDebug("Retrieving node priority information");
 				await foreach (var update in _persistence.WatchNodePriorityUpdates(cancellationToken))
 				{
-					_logger.LogCritical($"Received node priority update {update.NodeId} {update.Priority}");
-					_computedPriorityAggregator.UpdateNodePriorityInformation(update.NodeId, update.Priority);
+					_logger.LogDebug($"Received node priority update {update.NodeId} {update.Priority}");
+					_computedPriorityAggregator.UpdateNodePriorityInformation(update);
 				}
 			}
 			catch (Exception)
