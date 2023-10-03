@@ -41,7 +41,7 @@ internal class RecurrentWorkerService : IWorkerService
 			try
 			{
 				_logger.LogDebug($"[{worker}] Start");
-				await worker.ExecuteAsync(stoppingToken);
+				await worker.ExecuteAsync(stoppingToken).ConfigureAwait(false);
 				_logger.LogDebug($"[{worker}] Success");
 			}
 			catch (Exception e)
@@ -52,7 +52,7 @@ internal class RecurrentWorkerService : IWorkerService
 
 			var delay = _delayCalculator.Calculate(_schedule, _stopwatch.Elapsed, isError);
 			_logger.LogDebug($"[{worker}] Next execution will be after {delay:g} at {DateTimeOffset.UtcNow + delay:O}");
-			await Task.Delay(delay, stoppingToken);
+			await Task.Delay(delay, stoppingToken).ConfigureAwait(false);
 		}
 	}
 }

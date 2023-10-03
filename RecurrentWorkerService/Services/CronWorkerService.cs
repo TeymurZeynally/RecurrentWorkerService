@@ -37,7 +37,7 @@ internal class CronWorkerService : IWorkerService
 			try
 			{
 				_logger.LogDebug($"[{worker}] Start");
-				await worker.ExecuteAsync(stoppingToken);
+				await worker.ExecuteAsync(stoppingToken).ConfigureAwait(false);
 				_logger.LogDebug($"[{worker}] Success");
 			}
 			catch (Exception e)
@@ -48,7 +48,7 @@ internal class CronWorkerService : IWorkerService
 
 			var delay = _delayCalculator.Calculate(_schedule, isError);
 			_logger.LogDebug($"[{worker}] Next execution will be after {delay:g} at {DateTimeOffset.UtcNow + delay:O}");
-			await Task.Delay(delay, stoppingToken);
+			await Task.Delay(delay, stoppingToken).ConfigureAwait(false);
 		}
 	}
 }

@@ -20,7 +20,7 @@ internal class ExampleOfWorkloadWorker : IWorkloadWorker
 		_logger.LogInformation("Start");
 
 		_logger.LogInformation("Do something...");
-		await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+		await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
 
 		_logger.LogInformation("Calculate workload...");
 		var workload = (Workload)_random.Next(Workload.Zero, Workload.Full);

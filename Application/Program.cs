@@ -143,4 +143,5 @@ await Host.CreateDefaultBuilder(args)
 			.AddBasicPrioritization();	
 	})
 	.Build()
-	.RunAsync();
+	.RunAsync()
+	.ConfigureAwait(false);

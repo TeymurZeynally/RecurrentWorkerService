@@ -83,4 +83,5 @@ await Host.CreateDefaultBuilder(args)
 				s.GetRequiredService<ILogger<Collector>>()));
 	})
 	.Build()
-	.RunAsync();
+	.RunAsync()
+	.ConfigureAwait(false);

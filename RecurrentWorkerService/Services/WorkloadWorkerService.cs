@@ -45,7 +45,7 @@ internal class WorkloadWorkerService : IWorkerService
 			try
 			{
 				_logger.LogDebug($"[{worker}] Start");
-				workload = await worker.ExecuteAsync(stoppingToken);
+				workload = await worker.ExecuteAsync(stoppingToken).ConfigureAwait(false);
 				_logger.LogDebug($"[{worker}] Success");
 			}
 			catch (Exception e)
@@ -56,7 +56,7 @@ internal class WorkloadWorkerService : IWorkerService
 
 			delay = TimeSpanExtensions.Max(_delayCalculator.Calculate(_schedule, delay, workload, isError) - _stopwatch.Elapsed, TimeSpan.Zero);
 			_logger.LogDebug($"[{worker}] Next execution will be after {delay:g} at {DateTimeOffset.UtcNow + delay:O}");
-			await Task.Delay(delay, stoppingToken);
+			await Task.Delay(delay, stoppingToken).ConfigureAwait(false);
 		}
 	}
 }

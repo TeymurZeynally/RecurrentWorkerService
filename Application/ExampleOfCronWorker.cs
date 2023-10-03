@@ -17,7 +17,7 @@ internal class ExampleOfCronWorker : ICronWorker
 		_logger.LogInformation("Start");
 
 		_logger.LogInformation("Do something...");
-		await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+		await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
 
 		_logger.LogInformation("End");
 	}

@@ -23,8 +23,8 @@ internal class HeartbeatHostService : BackgroundService
 		while (!stoppingToken.IsCancellationRequested)
 		{
 			_logger.LogTrace("Heartbeat");
-			await _persistence.HeartbeatAsync(_settings.HeartbeatExpirationTimeout, stoppingToken);
-			await Task.Delay(_settings.HeartbeatPeriod, stoppingToken);
+			await _persistence.HeartbeatAsync(_settings.HeartbeatExpirationTimeout, stoppingToken).ConfigureAwait(false);
+			await Task.Delay(_settings.HeartbeatPeriod, stoppingToken).ConfigureAwait(false);
 		}
 	}
 }

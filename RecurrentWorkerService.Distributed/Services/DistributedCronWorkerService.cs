@@ -51,7 +51,7 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 		var retryLimit = DateTimeOffset.UtcNow;
 		var retryExecution = false;
 
-		await _priorityManager.ResetExecutionResultAsync(_identity, stoppingToken);
+		await _priorityManager.ResetExecutionResultAsync(_identity, stoppingToken).ConfigureAwait(false);
 
 		while (!stoppingToken.IsCancellationRequested)
 		{
@@ -64,7 +64,7 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 					var (nextN, nextExecutionDate) = _executionDateCalculator.CalculateNextExecutionDate(_schedule.CronExpression, DateTimeOffset.UtcNow);
 					var delay = TimeSpanExtensions.Max(TimeSpan.Zero, nextExecutionDate - DateTimeOffset.UtcNow);
 					_logger.LogDebug($"Next execution will be after {delay:g} at {DateTimeOffset.UtcNow + delay:O}");
-					await Task.Delay(delay, stoppingToken);
+					await Task.Delay(delay, stoppingToken).ConfigureAwait(false);
 					currentN = nextN;
 					retryLimit = _executionDateCalculator.CalculateNextExecutionDate(_schedule.CronExpression, DateTimeOffset.UtcNow).ExecutionDate;
 				}
@@ -72,20 +72,20 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 				using var activity = _activitySource.StartActivity(ActivityKind.Internal, name: nameof(DistributedCronWorkerService), tags: _activitySourceTags);
 
 				_logger.LogDebug($"Waiting for execution order...");
-				await _priorityManager.WaitForExecutionOrderAsync(_identity, _revision, GetPersistentItemsLifetime(retryLimit), stoppingToken);
+				await _priorityManager.WaitForExecutionOrderAsync(_identity, _revision, GetPersistentItemsLifetime(retryLimit), stoppingToken).ConfigureAwait(false);
 
 				_logger.LogDebug($"Waiting for lock for...");
-				var acquiredLock = await _persistence.AcquireExecutionLockAsync(_identity, stoppingToken);
+				var acquiredLock = await _persistence.AcquireExecutionLockAsync(_identity, stoppingToken).ConfigureAwait(false);
 				if (string.IsNullOrEmpty(acquiredLock)) continue;
 
 				try
 				{
-					retryExecution = await ExecuteIteration(currentN, retryLimit, stoppingToken);
+					retryExecution = await ExecuteIteration(currentN, retryLimit, stoppingToken).ConfigureAwait(false);
 				}
 				finally
 				{
 					_logger.LogDebug("Releasing acquired lock...");
-					await _persistence.ReleaseExecutionLockAsync(acquiredLock, stoppingToken);
+					await _persistence.ReleaseExecutionLockAsync(acquiredLock, stoppingToken).ConfigureAwait(false);
 					_logger.LogDebug("Acquired lock released");
 				}
 			}
@@ -99,7 +99,7 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 	private async Task<bool> ExecuteIteration(long currentN, DateTimeOffset nextExecutionDate, CancellationToken stoppingToken)
 	{
 		_logger.LogDebug($"Checking is {currentN} succeeded...");
-		var succeededResult = await _persistence.IsSucceededAsync(_identity, currentN, stoppingToken);
+		var succeededResult = await _persistence.IsSucceededAsync(_identity, currentN, stoppingToken).ConfigureAwait(false);
 
 		if (succeededResult.Data)
 		{
@@ -109,17 +109,17 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 		}
 
 		_logger.LogDebug($"Starting {currentN} execution...");
-		var succeeded = await ExecuteWorker(stoppingToken);
+		var succeeded = await ExecuteWorker(stoppingToken).ConfigureAwait(false);
 
 		if (succeeded)
 		{
-			var result =  await _persistence.SucceededAsync(_identity, currentN, GetPersistentItemsLifetime(nextExecutionDate), stoppingToken);
+			var result =  await _persistence.SucceededAsync(_identity, currentN, GetPersistentItemsLifetime(nextExecutionDate), stoppingToken).ConfigureAwait(false);
 			_revision = result.Revision;
 			_logger.LogDebug($"Success key for {currentN} created");
 		}
 		else if (_schedule.RetryOnFailDelay.HasValue)
 		{
-			await Task.Delay(_schedule.RetryOnFailDelay.Value, stoppingToken);
+			await Task.Delay(_schedule.RetryOnFailDelay.Value, stoppingToken).ConfigureAwait(false);
 			return true;
 		}
 
@@ -136,16 +136,16 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 		try
 		{
 			_logger.LogDebug($"[{worker}] Start");
-			await worker.ExecuteAsync(stoppingToken);
+			await worker.ExecuteAsync(stoppingToken).ConfigureAwait(false);
 			_logger.LogDebug($"[{worker}] Success");
-			await _priorityManager.ResetExecutionResultAsync(_identity, stoppingToken);
+			await _priorityManager.ResetExecutionResultAsync(_identity, stoppingToken).ConfigureAwait(false);
 
 			return true;
 		}
 		catch (Exception e)
 		{
 			_logger.LogError($"[{worker}] Fail: {e}");
-			await _priorityManager.DecreaseExecutionPriorityAsync(_identity, stoppingToken);
+			await _priorityManager.DecreaseExecutionPriorityAsync(_identity, stoppingToken).ConfigureAwait(false);
 			return false;
 		}
 	}
