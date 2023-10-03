@@ -17,8 +17,7 @@ public class WorkloadStrategyBuilder
 
 	public WorkloadStrategyBuilder Divide(Workload workload, double value)
 	{
-		_workloadStrategies.Add(new WorkloadStrategy
-			{ Action = StrategyAction.Divide, Workload = workload, ActionCoefficient = value });
+		_workloadStrategies.Add(new WorkloadStrategy { Action = StrategyAction.Divide, Workload = workload, ActionCoefficient = value });
 		return this;
 	}
 

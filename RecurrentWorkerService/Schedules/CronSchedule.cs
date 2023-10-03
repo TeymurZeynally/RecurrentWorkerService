@@ -2,5 +2,5 @@
 
 internal class CronSchedule : Schedule
 {
-	public string Expression { get; set; } = default!;
+	public string CronExpression { get; set; } = "* * * * *";
 }

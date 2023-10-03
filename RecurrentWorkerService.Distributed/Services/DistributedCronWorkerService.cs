@@ -61,12 +61,12 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 
 				if (!retryExecution || retryLimit < DateTimeOffset.UtcNow)
 				{
-					var (nextN, nextExecutionDate) = _executionDateCalculator.CalculateNextExecutionDate(_schedule.Expression, DateTimeOffset.UtcNow);
+					var (nextN, nextExecutionDate) = _executionDateCalculator.CalculateNextExecutionDate(_schedule.CronExpression, DateTimeOffset.UtcNow);
 					var delay = TimeSpanExtensions.Max(TimeSpan.Zero, nextExecutionDate - DateTimeOffset.UtcNow);
 					_logger.LogDebug($"Next execution will be after {delay:g} at {DateTimeOffset.UtcNow + delay:O}");
 					await Task.Delay(delay, stoppingToken);
 					currentN = nextN;
-					retryLimit = _executionDateCalculator.CalculateNextExecutionDate(_schedule.Expression, DateTimeOffset.UtcNow).ExecutionDate;
+					retryLimit = _executionDateCalculator.CalculateNextExecutionDate(_schedule.CronExpression, DateTimeOffset.UtcNow).ExecutionDate;
 				}
 
 				using var activity = _activitySource.StartActivity(ActivityKind.Internal, name: nameof(DistributedCronWorkerService), tags: _activitySourceTags);

@@ -44,7 +44,7 @@ var channel = GrpcChannel.ForAddress(
 
 
 await Host.CreateDefaultBuilder(args)
-	.ConfigureServices(services =>
+	.ConfigureServices((context, services) =>
 	{
 		services.AddWorkers(w =>
 		{
@@ -68,7 +68,7 @@ await Host.CreateDefaultBuilder(args)
 					.Set(Workload.Full, TimeSpan.FromSeconds(1)))
 				.SetRetryOnFailDelay(TimeSpan.FromSeconds(1)));
 
-			// Implementation factory registration
+			// Registration of implementation factories
 			w.AddCronWorker(
 				c => new ExampleOfCronWorker(c.GetRequiredService<ILogger<ExampleOfCronWorker>>()),
 				s => s
@@ -89,6 +89,23 @@ await Host.CreateDefaultBuilder(args)
 						.Add(Workload.Zero, TimeSpan.FromSeconds(1))
 						.Set(Workload.Full, TimeSpan.FromSeconds(1)))
 					.SetRetryOnFailDelay(TimeSpan.FromSeconds(1)));
+
+			// Registration with config sections
+			w.AddCronWorker(
+				c => new ExampleOfCronWorker(c.GetRequiredService<ILogger<ExampleOfCronWorker>>()),
+				s => s.FromConfigSection(context.Configuration.GetRequiredSection("WorkerSchedules:ExampleOfSomeCronSchedule")));
+
+			w.AddRecurrentWorker(
+				c => new ExampleOfRecurrentWorker(c.GetRequiredService<ILogger<ExampleOfRecurrentWorker>>()),
+				s => s.FromConfigSection(context.Configuration.GetRequiredSection("WorkerSchedules:ExampleOfSomeRecurrentSchedule")));
+
+			w.AddWorkloadWorker(
+				c => new ExampleOfWorkloadWorker(c.GetRequiredService<ILogger<ExampleOfWorkloadWorker>>()),
+				s => s.FromConfigSection(context.Configuration.GetRequiredSection("WorkerSchedules:ExampleOfSomeWorkloadSchedule")));
+
+			w.AddWorkloadWorker(
+				c => new ExampleOfWorkloadWorker(c.GetRequiredService<ILogger<ExampleOfWorkloadWorker>>()),
+				s => s.FromConfigSection(context.Configuration.GetRequiredSection("WorkerSchedules:ExampleOfSomeWorkloadScheduleWithStrategies")));
 		});
 
 		services.AddDistributedWorkers(
@@ -96,21 +113,21 @@ await Host.CreateDefaultBuilder(args)
 			w =>
 			{
 				w.AddDistributedCronWorker<ExampleOfCronWorker>(
-				    "CronWorker-1",
-				    s => s
-				        .SetCronExpression("* * * * *")
-				        .SetRetryOnFailDelay(TimeSpan.FromSeconds(1)));
+					"CronWorker-1",
+					s => s
+						.SetCronExpression("* * * * *")
+						.SetRetryOnFailDelay(TimeSpan.FromSeconds(1)));
 
 				w.AddDistributedCronWorker(
-				    "CronWorker-2",
+					"CronWorker-2",
 					c => new ExampleOfCronWorker(c.GetRequiredService<ILogger<ExampleOfCronWorker>>()),
-				    s => s
-				        .SetCronExpression("* * * * *")
-				        .SetRetryOnFailDelay(TimeSpan.FromSeconds(1)));
-
+					s => s
+						.SetCronExpression("* * * * *")
+						.SetRetryOnFailDelay(TimeSpan.FromSeconds(1)));
+				
 				w.AddDistributedRecurrentWorker<ExampleOfRecurrentWorker>(
-				    "RecurrentWorker-1",
-				    s => s
+					"RecurrentWorker-1",
+					s => s
 						.SetPeriod(TimeSpan.FromSeconds(5))
 						.SetRetryOnFailDelay(TimeSpan.Zero));
 

@@ -17,7 +17,7 @@ internal class WorkloadWorkerExecutionDelayCalculator
 		var strategy = schedule.Strategies.OrderBy(x => x.Workload).LastOrDefault(x => x.Workload <= workload);
 		if (strategy == null)
 		{
-			return TimeSpanExtensions.Max(lastDelay, schedule.PeriodFrom);
+			return workload == Workload.Zero ? schedule.PeriodTo : schedule.PeriodFrom;
 		}
 
 		var computedDelay = strategy.Action switch
