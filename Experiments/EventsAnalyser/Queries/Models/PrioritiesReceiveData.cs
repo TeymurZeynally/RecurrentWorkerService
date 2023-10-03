@@ -1,5 +1,4 @@
-﻿using EventsAnalyser.Helpers;
-using InfluxDB.Client.Core;
+﻿using InfluxDB.Client.Core;
 
 namespace EventsAnalyser.Queries.Models;
 

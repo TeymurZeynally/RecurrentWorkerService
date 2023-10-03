@@ -34,7 +34,6 @@ internal class WorkloadWorkerService : IWorkerService
 		while (!stoppingToken.IsCancellationRequested)
 		{
 			using var _ = _logger.BeginScope(Guid.NewGuid().ToString());
-
 			_logger.LogDebug("Creating new Worker...");
 			var worker = _workerFactory();
 

@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Text;
 using Etcdserverpb;
 using Google.Protobuf;
 using Grpc.Core;

@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using System.Text;
+﻿using System.Text;
 using EventsAnalyser.Analysers;
 using EventsAnalyser.Calculators.Models;
 using EventsAnalyser.Helpers;
