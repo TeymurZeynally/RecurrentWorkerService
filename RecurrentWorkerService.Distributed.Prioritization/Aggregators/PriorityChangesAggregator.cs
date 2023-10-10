@@ -21,8 +21,8 @@ internal class PriorityChangesAggregator : IPriorityChangesAggregator
 
 		_executionFailuresDictionary.TryAdd(identity, new ConcurrentBag<DateTimeOffset>());
 		_executionFailuresDictionary[identity].Add(DateTimeOffset.UtcNow);
-		var priority = await _priorityCalculator.GetFailuresPriorityAsync(_executionFailuresDictionary[identity].ToArray(), cancellationToken);
-		await _persistence.UpdateFailurePriorityAsync(identity, priority, cancellationToken);
+		var priority = await _priorityCalculator.GetFailuresPriorityAsync(_executionFailuresDictionary[identity].ToArray(), cancellationToken).ConfigureAwait(false);
+		await _persistence.UpdateFailurePriorityAsync(identity, priority, cancellationToken).ConfigureAwait(false);
 	}
 
 	public async Task ResetPriorityAsync(string identity, CancellationToken cancellationToken)
@@ -31,8 +31,8 @@ internal class PriorityChangesAggregator : IPriorityChangesAggregator
 
 		_executionFailuresDictionary.TryAdd(identity, new ConcurrentBag<DateTimeOffset>());
 		_executionFailuresDictionary[identity].Clear();
-		var priority = await _priorityCalculator.GetFailuresPriorityAsync(_executionFailuresDictionary[identity].ToArray(), cancellationToken);
-		await _persistence.UpdateFailurePriorityAsync(identity, priority, cancellationToken);
+		var priority = await _priorityCalculator.GetFailuresPriorityAsync(_executionFailuresDictionary[identity].ToArray(), cancellationToken).ConfigureAwait(false);
+		await _persistence.UpdateFailurePriorityAsync(identity, priority, cancellationToken).ConfigureAwait(false);
 	}
 
 	public async Task UpdateIdentityIndicatorPrioritiesAsync((string Identity, byte Measurement)[] indicators, CancellationToken cancellationToken)
@@ -50,8 +50,8 @@ internal class PriorityChangesAggregator : IPriorityChangesAggregator
 	{
 		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityNodeTags);
 
-		var priority = await _priorityCalculator.GetNodePriorityAsync(indicators, cancellationToken);
-		await _persistence.UpdateNodePriorityAsync(priority, cancellationToken);
+		var priority = await _priorityCalculator.GetNodePriorityAsync(indicators, cancellationToken).ConfigureAwait(false);
+		await _persistence.UpdateNodePriorityAsync(priority, cancellationToken).ConfigureAwait(false);
 	}
 
 

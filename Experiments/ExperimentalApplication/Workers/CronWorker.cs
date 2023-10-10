@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using ExperimentalApplication.Payloads;
+﻿using ExperimentalApplication.Payloads;
 using Microsoft.Extensions.Logging;
 using RecurrentWorkerService.Workers;
 

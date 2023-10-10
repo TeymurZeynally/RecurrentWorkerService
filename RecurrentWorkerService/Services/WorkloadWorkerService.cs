@@ -31,21 +31,21 @@ internal class WorkloadWorkerService : IWorkerService
 
 	public async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
+		var delay = _schedule.PeriodFrom + _schedule.PeriodTo / 2;
+
 		while (!stoppingToken.IsCancellationRequested)
 		{
 			using var _ = _logger.BeginScope(Guid.NewGuid().ToString());
-
 			_logger.LogDebug("Creating new Worker...");
 			var worker = _workerFactory();
 
 			_stopwatch.Restart();
 			var isError = false;
 			var workload = Workload.Zero;
-			var delay = _schedule.PeriodFrom + _schedule.PeriodTo / 2;
 			try
 			{
 				_logger.LogDebug($"[{worker}] Start");
-				workload = await worker.ExecuteAsync(stoppingToken);
+				workload = await worker.ExecuteAsync(stoppingToken).ConfigureAwait(false);
 				_logger.LogDebug($"[{worker}] Success");
 			}
 			catch (Exception e)
@@ -56,7 +56,7 @@ internal class WorkloadWorkerService : IWorkerService
 
 			delay = TimeSpanExtensions.Max(_delayCalculator.Calculate(_schedule, delay, workload, isError) - _stopwatch.Elapsed, TimeSpan.Zero);
 			_logger.LogDebug($"[{worker}] Next execution will be after {delay:g} at {DateTimeOffset.UtcNow + delay:O}");
-			await Task.Delay(delay, stoppingToken);
+			await Task.Delay(delay, stoppingToken).ConfigureAwait(false);
 		}
 	}
 }

@@ -20,6 +20,6 @@ internal class ImmediatePayload : IPayload
 		using var activity = _activitySource.StartActivity(name: $"{nameof(ImmediatePayload)}.{nameof(ExecuteAsync)}");
 		activity?.AddTag("node", _nodeId);
 		activity?.AddTag("identity", _identity);
-		await Task.CompletedTask;
+		await Task.CompletedTask.ConfigureAwait(false);
 	}
 }

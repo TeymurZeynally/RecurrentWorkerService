@@ -4,7 +4,6 @@ using EventsAnalyser.Calculators.Models;
 using EventsAnalyser.Queries.Models;
 using FluentAssertions;
 using InfluxDB.Client;
-using MathNet.Numerics.LinearAlgebra.Factorization;
 using NCrontab;
 
 namespace EventsAnalyser.Analysers;

@@ -13,6 +13,6 @@ internal class DistributedWorkerHostedService : BackgroundService
 
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
-		await Task.WhenAll(_services.Select(x => x.ExecuteAsync(stoppingToken)));
+		await Task.WhenAll(_services.Select(x => x.ExecuteAsync(stoppingToken))).ConfigureAwait(false);
 	}
 }

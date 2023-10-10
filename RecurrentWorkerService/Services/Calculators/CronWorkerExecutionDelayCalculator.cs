@@ -13,6 +13,6 @@ internal class CronWorkerExecutionDelayCalculator
 		}
 
 		var now = DateTime.UtcNow;
-		return CrontabSchedule.Parse(schedule.Expression).GetNextOccurrence(now) - now;
+		return CrontabSchedule.Parse(schedule.CronExpression).GetNextOccurrence(now) - now;
 	}
 }

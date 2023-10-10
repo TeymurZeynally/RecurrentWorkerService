@@ -29,13 +29,13 @@ internal class EtcdPersistence: IPersistence
 	}
 	public async Task<string?> AcquireExecutionLockAsync(string identity, CancellationToken cancellationToken)
 	{
-		await WaitForLeaseAsync();
+		await WaitForLeaseAsync().ConfigureAwait(false);
 
 		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityTags);
 
 		var response = await _lockClient.LockAsync(
 			new LockRequest { Lease = _nodeId, Name = ByteString.CopyFromUtf8(GetKeyForExecutionLock(identity)) },
-			cancellationToken: cancellationToken);
+			cancellationToken: cancellationToken).ConfigureAwait(false);
 
 		return response.Key.ToStringUtf8();
 	}
@@ -46,10 +46,10 @@ internal class EtcdPersistence: IPersistence
 
 		var lease = await _leaseClient.LeaseGrantAsync(
 			new LeaseGrantRequest { TTL = (long)lifetime.TotalSeconds + 512 },
-			cancellationToken: cancellationToken);
+			cancellationToken: cancellationToken).ConfigureAwait(false);
 		var response = await _kvClient.PutAsync(
 			new PutRequest { Key = ByteString.CopyFromUtf8(GetKeyForSucceededIteration(identity, scheduleIndex)), Lease = lease.ID},
-			cancellationToken: cancellationToken);
+			cancellationToken: cancellationToken).ConfigureAwait(false);
 
 		return new() { Revision = response.Header.Revision };
 	}
@@ -60,7 +60,7 @@ internal class EtcdPersistence: IPersistence
 
 		var result = await _kvClient.RangeAsync(
 			new RangeRequest { CountOnly = true, Key = ByteString.CopyFromUtf8(GetKeyForSucceededIteration(identity, scheduleIndex)) },
-			cancellationToken: cancellationToken);
+			cancellationToken: cancellationToken).ConfigureAwait(false);
 
 		return new() { Data = result.Count > 0, Revision = result.Header.Revision };
 	}
@@ -74,16 +74,16 @@ internal class EtcdPersistence: IPersistence
 			try
 			{
 				using var keepAlive = _leaseClient.LeaseKeepAlive(cancellationToken: cancellationToken);
-				await keepAlive.RequestStream.WriteAsync(new LeaseKeepAliveRequest { ID = _nodeId });
-				await keepAlive.RequestStream.CompleteAsync();
-				var anyResponse = await keepAlive.ResponseStream.MoveNext(cancellationToken);
+				await keepAlive.RequestStream.WriteAsync(new LeaseKeepAliveRequest { ID = _nodeId }).ConfigureAwait(false);
+				await keepAlive.RequestStream.CompleteAsync().ConfigureAwait(false);
+				var anyResponse = await keepAlive.ResponseStream.MoveNext(cancellationToken).ConfigureAwait(false);
 				if (!anyResponse || keepAlive.ResponseStream.Current.TTL <= 0)
 				{
-					var ttlResponse = await _leaseClient.LeaseTimeToLiveAsync(new LeaseTimeToLiveRequest { ID = _nodeId }, cancellationToken: cancellationToken);
+					var ttlResponse = await _leaseClient.LeaseTimeToLiveAsync(new LeaseTimeToLiveRequest { ID = _nodeId }, cancellationToken: cancellationToken).ConfigureAwait(false);
 
 					if (ttlResponse == null || ttlResponse.TTL < 0)
 					{
-						await _leaseClient.LeaseGrantAsync(new LeaseGrantRequest { ID = _nodeId, TTL = (long)expiration.TotalSeconds }, cancellationToken: cancellationToken);
+						await _leaseClient.LeaseGrantAsync(new LeaseGrantRequest { ID = _nodeId, TTL = (long)expiration.TotalSeconds }, cancellationToken: cancellationToken).ConfigureAwait(false);
 					}
 				}
 
@@ -103,7 +103,7 @@ internal class EtcdPersistence: IPersistence
 
 		await _lockClient.UnlockAsync(
 			new UnlockRequest { Key = ByteString.CopyFromUtf8(lockId) },
-			cancellationToken: cancellationToken);
+			cancellationToken: cancellationToken).ConfigureAwait(false);
 	}
 
 
@@ -113,7 +113,7 @@ internal class EtcdPersistence: IPersistence
 
 		var response = await _kvClient.RangeAsync(
 			new RangeRequest { Key = ByteString.CopyFromUtf8(GetKeyForWorkload(identity)), Limit = 1 },
-			cancellationToken: cancellationToken);
+			cancellationToken: cancellationToken).ConfigureAwait(false);
 
 		if (response.Count == 0)
 		{
@@ -133,7 +133,7 @@ internal class EtcdPersistence: IPersistence
 
 		var lease = await _leaseClient.LeaseGrantAsync(
 			new LeaseGrantRequest { TTL = (long)lifetime.TotalSeconds },
-			cancellationToken: cancellationToken);
+			cancellationToken: cancellationToken).ConfigureAwait(false);
 
 		var response = await _kvClient.PutAsync(
 			new PutRequest
@@ -142,7 +142,7 @@ internal class EtcdPersistence: IPersistence
 				Value = ByteString.CopyFromUtf8(JsonSerializer.Serialize(workloadInfo)),
 				Lease = lease.ID
 			},
-			cancellationToken: cancellationToken);
+			cancellationToken: cancellationToken).ConfigureAwait(false);
 
 		return new() { Revision = response.Header.Revision };
 	}
@@ -151,19 +151,19 @@ internal class EtcdPersistence: IPersistence
 	{
 		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityTags);
 
-		await WaitForLeaseAsync();
+		await WaitForLeaseAsync().ConfigureAwait(false);
 		await _kvClient.PutAsync(new PutRequest
 			{
 				Lease = _nodeId,
 				Key = ByteString.CopyFromUtf8(GetKeyForFailurePriority(identity)),
 				Value = ByteString.CopyFrom(priority),
 			},
-			cancellationToken: cancellationToken);
+			cancellationToken: cancellationToken).ConfigureAwait(false);
 	}
 
 	public async Task UpdateNodePriorityAsync(byte priority, CancellationToken cancellationToken)
 	{
-		await WaitForLeaseAsync();
+		await WaitForLeaseAsync().ConfigureAwait(false);
 
 		using var activity = _activitySource.StartActivity(ActivityKind.Internal, tags: _activityTags);
 
@@ -173,7 +173,7 @@ internal class EtcdPersistence: IPersistence
 				Key = ByteString.CopyFromUtf8(GetKeyForNodePriority()),
 				Value = ByteString.CopyFrom(priority),
 			},
-			cancellationToken: cancellationToken);
+			cancellationToken: cancellationToken).ConfigureAwait(false);
 	}
 
 
@@ -253,11 +253,11 @@ internal class EtcdPersistence: IPersistence
 					StartRevision = revisionStart,
 					Filters = { WatchCreateRequest.Types.FilterType.Nodelete }
 				},
-			});
+			}).ConfigureAwait(false);
 
-		await watchStream.RequestStream.CompleteAsync();
+		await watchStream.RequestStream.CompleteAsync().ConfigureAwait(false);
 		var count = default(int);
-		while (await watchStream.ResponseStream.MoveNext(cancellationToken))
+		while (await watchStream.ResponseStream.MoveNext(cancellationToken).ConfigureAwait(false))
 		{
 			count += watchStream.ResponseStream.Current.Events.Count;
 			if (count >= order)
@@ -272,7 +272,7 @@ internal class EtcdPersistence: IPersistence
 		var key = ByteString.CopyFromUtf8(searchKey);
 		var rangeEnd = ByteString.CopyFromUtf8(GetRangeEnd(searchKey));
 
-		var range = await _kvClient.RangeAsync(new RangeRequest { Key = key, RangeEnd = rangeEnd }, cancellationToken: cancellationToken);
+		var range = await _kvClient.RangeAsync(new RangeRequest { Key = key, RangeEnd = rangeEnd }, cancellationToken: cancellationToken).ConfigureAwait(false);
 
 		foreach (var kv in range.Kvs)
 		{
@@ -284,10 +284,10 @@ internal class EtcdPersistence: IPersistence
 			new WatchRequest
 			{
 				CreateRequest = new WatchCreateRequest { Key = key, RangeEnd = rangeEnd, StartRevision = range.Header.Revision + 1 },
-			});
-		await watchStream.RequestStream.CompleteAsync();
+			}).ConfigureAwait(false);
+		await watchStream.RequestStream.CompleteAsync().ConfigureAwait(false);
 
-		while (await watchStream.ResponseStream.MoveNext(cancellationToken))
+		while (await watchStream.ResponseStream.MoveNext(cancellationToken).ConfigureAwait(false))
 		{
 			foreach (var @event in watchStream.ResponseStream.Current.Events)
 			{
@@ -307,7 +307,7 @@ internal class EtcdPersistence: IPersistence
 				return;
 			}
 
-			await Task.Delay(TimeSpan.FromSeconds(3));
+			await Task.Delay(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
 		}
 
 		throw new TimeoutException("No lease for 3 seconds");

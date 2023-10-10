@@ -1,6 +1,5 @@
 
 using System.Diagnostics;
-using System.Globalization;
 using InfluxLineProtocol;
 using OpenTelemetry.Resources;
 

@@ -43,7 +43,7 @@ internal class PriorityService : BackgroundService
 				_computedPriorityAggregator.ResetPriorityInformation();
 		
 				_logger.LogDebug("Retrieving priority information");
-				await foreach (var update in _persistence.WatchFailuresPriorityUpdates(cancellationToken))
+				await foreach (var update in _persistence.WatchFailuresPriorityUpdates(cancellationToken).ConfigureAwait(false))
 				{
 					_logger.LogDebug($"Received priority update {update.NodeId} {update.Identity} {update.Priority}");
 					_computedPriorityAggregator.UpdateFailuresPriorityInformation(update);
@@ -87,7 +87,7 @@ internal class PriorityService : BackgroundService
 				_computedPriorityAggregator.ResetNodePriorityInformation();
 
 				_logger.LogDebug("Retrieving node priority information");
-				await foreach (var update in _persistence.WatchNodePriorityUpdates(cancellationToken))
+				await foreach (var update in _persistence.WatchNodePriorityUpdates(cancellationToken).ConfigureAwait(false))
 				{
 					_logger.LogDebug($"Received node priority update {update.NodeId} {update.Priority}");
 					_computedPriorityAggregator.UpdateNodePriorityInformation(update);
@@ -135,8 +135,8 @@ internal class PriorityService : BackgroundService
 			try
 			{
 				var indicators = _nodePriorityIndicators.Select(x => x.GetMeasurement()).ToArray();
-				await _priorityChangesAggregator.UpdateNodeIndicatorPrioritiesAsync(indicators, cancellationToken);
-				await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+				await _priorityChangesAggregator.UpdateNodeIndicatorPrioritiesAsync(indicators, cancellationToken).ConfigureAwait(false);
+				await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
 
 			}
 			catch (Exception e)

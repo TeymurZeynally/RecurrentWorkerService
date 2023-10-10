@@ -47,7 +47,7 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 
 	public async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
-		await _priorityManager.ResetExecutionResultAsync(_identity, stoppingToken);
+		await _priorityManager.ResetExecutionResultAsync(_identity, stoppingToken).ConfigureAwait(false);
 
 		while (!stoppingToken.IsCancellationRequested)
 		{
@@ -57,10 +57,10 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 				using var _ = _logger.BeginScope(_identity);
 
 				_logger.LogDebug($"Waiting for execution order...");
-				await _priorityManager.WaitForExecutionOrderAsync(_identity, _revision, GetPersistentItemsLifetime(_schedule.Period), stoppingToken);
+				await _priorityManager.WaitForExecutionOrderAsync(_identity, _revision, GetPersistentItemsLifetime(_schedule.Period), stoppingToken).ConfigureAwait(false);
 
 				_logger.LogDebug("Waiting for lock...");
-				var acquiredLock = await _persistence.AcquireExecutionLockAsync(_identity, stoppingToken);
+				var acquiredLock = await _persistence.AcquireExecutionLockAsync(_identity, stoppingToken).ConfigureAwait(false);
 				if (string.IsNullOrEmpty(acquiredLock)) continue;
 
 				_logger.LogDebug("Lock acquired");
@@ -70,7 +70,7 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 
 				try
 				{
-					var retryExecution = await ExecuteIteration(nextN - 1, stoppingToken);
+					var retryExecution = await ExecuteIteration(nextN - 1, stoppingToken).ConfigureAwait(false);
 					if (!retryExecution)
 					{
 						delay = TimeSpanExtensions.Max(TimeSpan.Zero, nextExecutionDate - DateTimeOffset.UtcNow);
@@ -79,14 +79,14 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 				finally
 				{
 					_logger.LogDebug("Releasing acquired lock...");
-					await _persistence.ReleaseExecutionLockAsync(acquiredLock, stoppingToken);
+					await _persistence.ReleaseExecutionLockAsync(acquiredLock, stoppingToken).ConfigureAwait(false);
 					_logger.LogDebug("Acquired lock released");
 				}
 
 				activity?.Dispose();
 
 				_logger.LogDebug($"Next execution will be after {delay:g} at {DateTimeOffset.UtcNow + delay:O}");
-				await Task.Delay(delay, stoppingToken);
+				await Task.Delay(delay, stoppingToken).ConfigureAwait(false);
 			}
 			catch (Exception e)
 			{
@@ -99,7 +99,7 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 	{
 		_logger.LogDebug($"Checking is {currentN} succeeded...");
 
-		var succeededResult = await _persistence.IsSucceededAsync(_identity, currentN, stoppingToken);
+		var succeededResult = await _persistence.IsSucceededAsync(_identity, currentN, stoppingToken).ConfigureAwait(false);
 
 		if (succeededResult.Data)
 		{
@@ -109,17 +109,17 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 		}
 
 		_logger.LogDebug($"Starting {currentN} execution...");
-		var succeeded = await ExecuteWorker(stoppingToken);
+		var succeeded = await ExecuteWorker(stoppingToken).ConfigureAwait(false);
 
 		if (succeeded)
 		{
-			var result = await _persistence.SucceededAsync(_identity, currentN, GetPersistentItemsLifetime(_schedule.Period), stoppingToken);
+			var result = await _persistence.SucceededAsync(_identity, currentN, GetPersistentItemsLifetime(_schedule.Period), stoppingToken).ConfigureAwait(false);
 			_revision = result.Revision;
 			_logger.LogDebug($"Success key for {currentN} created");
 		}
 		else if (_schedule.RetryOnFailDelay.HasValue)
 		{
-			await Task.Delay(_schedule.RetryOnFailDelay.Value, stoppingToken);
+			await Task.Delay(_schedule.RetryOnFailDelay.Value, stoppingToken).ConfigureAwait(false);
 			return true;
 		}
 
@@ -136,15 +136,15 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 		try
 		{
 			_logger.LogDebug($"[{worker}] Start");
-			await worker.ExecuteAsync(stoppingToken);
+			await worker.ExecuteAsync(stoppingToken).ConfigureAwait(false);
 			_logger.LogDebug($"[{worker}] Success");
-			await _priorityManager.ResetExecutionResultAsync(_identity, stoppingToken);
+			await _priorityManager.ResetExecutionResultAsync(_identity, stoppingToken).ConfigureAwait(false);
 			return true;
 		}
 		catch (Exception e)
 		{
 			_logger.LogError($"[{worker}] Fail: {e}");
-			await _priorityManager.DecreaseExecutionPriorityAsync(_identity, stoppingToken);
+			await _priorityManager.DecreaseExecutionPriorityAsync(_identity, stoppingToken).ConfigureAwait(false);
 			return false;
 		}
 	}

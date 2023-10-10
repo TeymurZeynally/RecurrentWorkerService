@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using System.Text;
+﻿using System.Text;
 using EventsAnalyser.Analysers;
 using EventsAnalyser.Calculators.Models;
 using EventsAnalyser.Helpers;
@@ -91,19 +90,19 @@ foreach (var line in lines)
 
 	foreach (var config in configurationOfWorkers)
 	{
-		var periodicOperationsIntersectionResult = await new PeriodicOperationsIntersectionAnalyser(queryApi).Analyse(line.Interval, config.Payload, config.Id);
-		var libAndCodeOperationsAnalyserResult = await new LibAndCodeOperationsAnalyser(queryApi).Analyse(line.Interval, "DistributedRecurrentWorkerService", config.Payload, config.Id);
+		var periodicOperationsIntersectionResult = await new PeriodicOperationsIntersectionAnalyser(queryApi).Analyse(line.Interval, config.Payload, config.Id).ConfigureAwait(false);
+		var libAndCodeOperationsAnalyserResult = await new LibAndCodeOperationsAnalyser(queryApi).Analyse(line.Interval, "DistributedRecurrentWorkerService", config.Payload, config.Id).ConfigureAwait(false);
 
 		if(config.Period != null)
 		{
-			var periodicOperationsResult = await new PeriodicOperationsAnalyser(queryApi).Analyse(line.Interval, config.Period.Value, config.Payload, config.Id);
+			var periodicOperationsResult = await new PeriodicOperationsAnalyser(queryApi).Analyse(line.Interval, config.Period.Value, config.Payload, config.Id).ConfigureAwait(false);
 			periodicOperationsResult.Should().NotBeNull();
 			periodicOperationsReults.Add(periodicOperationsResult);
 		}
 
 		if(config.WorkloadSchedule != null)
 		{
-			var periodicOperationsResult = await new PeriodicWorkloadOperationsAnalyser(queryApi).Analyse(line.Interval, config.WorkloadSchedule, config.Payload, config.Id);
+			var periodicOperationsResult = await new PeriodicWorkloadOperationsAnalyser(queryApi).Analyse(line.Interval, config.WorkloadSchedule, config.Payload, config.Id).ConfigureAwait(false);
 			periodicOperationsResult.Should().NotBeNull();
 			periodicOperationsReults.Add(periodicOperationsResult);
 		}
@@ -121,11 +120,11 @@ foreach (var line in lines)
 	PrintCsv(line.Name, "LibAndCodeOperations", libAndCodeOperationsReults.ToArray());
 	Console.WriteLine();
 
-	var persistenceOperationsDurationResults = await new PersistenceOperationsDurationAnalyser(queryApi).Analyse(line.Interval);
+	var persistenceOperationsDurationResults = await new PersistenceOperationsDurationAnalyser(queryApi).Analyse(line.Interval).ConfigureAwait(false);
 	PrintCsv(line.Name, "PersistenceOperationsDuration", persistenceOperationsDurationResults);
 	Console.WriteLine();
 
-	var prioritiesReceiveTimestampResult = await new PrioritiesReceiveTimestampAnalyser(queryApi).Analyse(line.Interval, "UpdatePriorityInformation");
+	var prioritiesReceiveTimestampResult = await new PrioritiesReceiveTimestampAnalyser(queryApi).Analyse(line.Interval, "UpdatePriorityInformation").ConfigureAwait(false);
 	PrintCsv(line.Name, "PrioritiesReceive", prioritiesReceiveTimestampResult);
 	Console.WriteLine();
 

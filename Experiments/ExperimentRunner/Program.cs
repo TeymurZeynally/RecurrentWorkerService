@@ -6,9 +6,9 @@ using Microsoft.Extensions.Configuration;
 
 var configuration = new ConfigurationBuilder().AddJsonFile($"appsettings.json").Build().Get<Configuration>();
 
-await RunFastCommandAndWait($"docker container rm -f etcd_events_collector");
+await RunFastCommandAndWait($"docker container rm -f etcd_events_collector").ConfigureAwait(false);
 var kvEtcdHosts = string.Join(";", configuration!.Plan.SelectMany(x => x.Storages.Select(k => k.Name)).Distinct().Select(x => $"{x}:2379").ToArray());
-await RunFastCommandAndWait($"docker run -d --name etcd_events_collector --network experiment -v /home/teymur/Desktop/Dashboard/DockerInfluxLineFilesVolume:/influx -e EXPERIMENT_ETCD_HOSTS={kvEtcdHosts} etcd_events_collector");
+await RunFastCommandAndWait($"docker run -d --name etcd_events_collector --network experiment -v /home/teymur/Desktop/Dashboard/DockerInfluxLineFilesVolume:/influx -e EXPERIMENT_ETCD_HOSTS={kvEtcdHosts} etcd_events_collector").ConfigureAwait(false);
 
 foreach (var planItem in configuration.Plan)
 {
@@ -32,7 +32,7 @@ foreach (var planItem in configuration.Plan)
             if (!cancellationTokenSource.Token.WaitHandle.WaitOne())
                 throw new InvalidOperationException($"CT problem in '{x.StartInfo.FileName} {x.StartInfo.Arguments}': WaitHandle is false");
 
-            await RunFastCommandAndWait($"docker container rm -f {containerId}");
+            await RunFastCommandAndWait($"docker container rm -f {containerId}").ConfigureAwait(false);
         }));
     
     Task.WaitAll(tasks.ToArray());

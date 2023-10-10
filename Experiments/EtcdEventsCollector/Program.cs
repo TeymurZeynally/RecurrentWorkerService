@@ -9,7 +9,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry;
-using OpenTelemetry.Exporter;
 using OpenTelemetry.Exporter.InfluxLineProtocolFile.OpenTelemetry.Exporter.InfluxLineProtocolFile;
 using OpenTelemetry.Trace;
 
@@ -83,4 +82,5 @@ await Host.CreateDefaultBuilder(args)
 				s.GetRequiredService<ILogger<Collector>>()));
 	})
 	.Build()
-	.RunAsync();
+	.RunAsync()
+	.ConfigureAwait(false);

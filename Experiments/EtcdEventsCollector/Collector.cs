@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Text;
 using Etcdserverpb;
 using Google.Protobuf;
 using Grpc.Core;
@@ -61,11 +60,11 @@ internal class Collector : IHostedService
 					RangeEnd = ByteString.CopyFromUtf8("\x00"),
 				},
 			},
-			cancellationToken);
+			cancellationToken).ConfigureAwait(false);
 
-		await watchStream.RequestStream.CompleteAsync();
+		await watchStream.RequestStream.CompleteAsync().ConfigureAwait(false);
 
-		while (await watchStream.ResponseStream.MoveNext(cancellationToken))
+		while (await watchStream.ResponseStream.MoveNext(cancellationToken).ConfigureAwait(false))
 		{
 			var events = watchStream.ResponseStream.Current.Events;
 

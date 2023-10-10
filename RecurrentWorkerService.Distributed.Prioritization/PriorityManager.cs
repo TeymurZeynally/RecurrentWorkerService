@@ -27,7 +27,7 @@ internal class PriorityManager : IPriorityManager
 		try
 		{
 			var cts = new CancellationTokenSource(_waitForLockTimeout);
-			await _persistence.WaitForOrderAsync(order, identity, revisionStart, cts.Token);
+			await _persistence.WaitForOrderAsync(order, identity, revisionStart, cts.Token).ConfigureAwait(false);
 		}
 		catch
 		{
@@ -37,12 +37,12 @@ internal class PriorityManager : IPriorityManager
 
 	public async Task ResetExecutionResultAsync(string identity, CancellationToken cancellationToken)
 	{
-		await _priorityChangesAggregator.ResetPriorityAsync(identity, cancellationToken);
+		await _priorityChangesAggregator.ResetPriorityAsync(identity, cancellationToken).ConfigureAwait(false);
 	}
 
 	public async Task DecreaseExecutionPriorityAsync(string identity, CancellationToken cancellationToken)
 	{
-		await _priorityChangesAggregator.DecreasePriorityAsync(identity, cancellationToken);
+		await _priorityChangesAggregator.DecreasePriorityAsync(identity, cancellationToken).ConfigureAwait(false);
 	}
 
 	private readonly IComputedPriorityAggregator _computedPriorityAggregator;
