@@ -33,25 +33,28 @@ internal class RecurrentWorkerService : IWorkerService
 		{
 			using var _ = _logger.BeginScope(Guid.NewGuid().ToString());
 
-			_logger.LogDebug("Creating new Worker...");
-			var worker = _workerFactory();
-
-			_stopwatch.Restart();
 			var isError = false;
 			try
 			{
-				_logger.LogDebug($"[{worker}] Start");
+				_logger.LogDebug("Creating new Worker...");
+				var worker = _workerFactory();
+
+				_stopwatch.Restart();
+
+				_logger.LogDebug("[{Worker}] Execution start", worker);
 				await worker.ExecuteAsync(stoppingToken).ConfigureAwait(false);
-				_logger.LogDebug($"[{worker}] Success");
+				_logger.LogDebug("[{Worker}] Execution succeeded", worker);
 			}
 			catch (Exception e)
 			{
-				_logger.LogError($"[{worker}] Fail: {e}");
+				_logger.LogError(e, "Execution failed");
 				isError = true;
 			}
 
+			var now = DateTimeOffset.UtcNow;
 			var delay = _delayCalculator.Calculate(_schedule, _stopwatch.Elapsed, isError);
-			_logger.LogDebug($"[{worker}] Next execution will be after {delay:g} at {DateTimeOffset.UtcNow + delay:O}");
+
+			_logger.LogDebug("Next execution will be after {Delay:g} at {NextExecutionTimestamp:O}", delay, now + delay);
 			await Task.Delay(delay, stoppingToken).ConfigureAwait(false);
 		}
 	}

@@ -31,31 +31,37 @@ internal class WorkloadWorkerService : IWorkerService
 
 	public async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
-		var delay = _schedule.PeriodFrom + _schedule.PeriodTo / 2;
+		var workloadDependedDelay = _schedule.PeriodFrom + _schedule.PeriodTo / 2;
 
 		while (!stoppingToken.IsCancellationRequested)
 		{
 			using var _ = _logger.BeginScope(Guid.NewGuid().ToString());
-			_logger.LogDebug("Creating new Worker...");
-			var worker = _workerFactory();
 
-			_stopwatch.Restart();
-			var isError = false;
 			var workload = Workload.Zero;
+			var isError = false;
+
 			try
 			{
-				_logger.LogDebug($"[{worker}] Start");
+				_logger.LogDebug("Creating new Worker...");
+				var worker = _workerFactory();
+
+				_stopwatch.Restart();
+
+				_logger.LogDebug("[{Worker}] Execution start", worker);
 				workload = await worker.ExecuteAsync(stoppingToken).ConfigureAwait(false);
-				_logger.LogDebug($"[{worker}] Success");
+				_logger.LogDebug("[{Worker}] Execution succeeded with workload {Workload}", worker, workload.Value);
 			}
 			catch (Exception e)
 			{
-				_logger.LogError($"[{worker}] Fail: {e}");
+				_logger.LogError(e, "Execution failed");
 				isError = true;
 			}
 
-			delay = TimeSpanExtensions.Max(_delayCalculator.Calculate(_schedule, delay, workload, isError) - _stopwatch.Elapsed, TimeSpan.Zero);
-			_logger.LogDebug($"[{worker}] Next execution will be after {delay:g} at {DateTimeOffset.UtcNow + delay:O}");
+			workloadDependedDelay = _delayCalculator.Calculate(_schedule, workloadDependedDelay, workload, isError);
+
+			var delay = TimeSpanExtensions.Max(workloadDependedDelay - _stopwatch.Elapsed, TimeSpan.Zero);
+
+			_logger.LogDebug("Next execution will be after {Delay:g} at {NextExecutionTimestamp:O}", delay, DateTimeOffset.UtcNow + delay);
 			await Task.Delay(delay, stoppingToken).ConfigureAwait(false);
 		}
 	}

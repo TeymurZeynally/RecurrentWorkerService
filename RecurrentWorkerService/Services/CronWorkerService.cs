@@ -26,29 +26,34 @@ internal class CronWorkerService : IWorkerService
 
 	public async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
+		var isError = false;
+
 		while (!stoppingToken.IsCancellationRequested)
 		{
 			using var _ = _logger.BeginScope(Guid.NewGuid().ToString());
+			var now = DateTimeOffset.UtcNow;
+			var delay = _delayCalculator.Calculate(_schedule, isError);
 
-			_logger.LogDebug("Creating new Worker...");
-			var worker = _workerFactory();
+			_logger.LogDebug("Next execution will be after {Delay:g} at {NextExecutionTimestamp:O}", delay, now + delay);
 
-			var isError = false;
+			await Task.Delay(delay, stoppingToken).ConfigureAwait(false);
+
 			try
 			{
-				_logger.LogDebug($"[{worker}] Start");
+				_logger.LogDebug("Creating new Worker...");
+				var worker = _workerFactory();
+
+				_logger.LogDebug("[{Worker}] Execution start", worker);
 				await worker.ExecuteAsync(stoppingToken).ConfigureAwait(false);
-				_logger.LogDebug($"[{worker}] Success");
+				_logger.LogDebug("[{Worker}] Execution succeeded", worker);
+				isError = false;
+
 			}
 			catch (Exception e)
 			{
-				_logger.LogError($"[{worker}] Fail: {e}");
+				_logger.LogError(e, "Execution failed");
 				isError = true;
 			}
-
-			var delay = _delayCalculator.Calculate(_schedule, isError);
-			_logger.LogDebug($"[{worker}] Next execution will be after {delay:g} at {DateTimeOffset.UtcNow + delay:O}");
-			await Task.Delay(delay, stoppingToken).ConfigureAwait(false);
 		}
 	}
 }
