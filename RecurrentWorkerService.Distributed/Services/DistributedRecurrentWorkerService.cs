@@ -47,7 +47,7 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 
 	public async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
-		await _priorityManager.ResetExecutionResultAsync(_identity, stoppingToken).ConfigureAwait(false);
+		await _priorityManager.ResetExecutionResultAsync(_identity, true, stoppingToken).ConfigureAwait(false);
 
 		while (!stoppingToken.IsCancellationRequested)
 		{
@@ -57,7 +57,7 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 				using var _ = _logger.BeginScope(_identity);
 
 				_logger.LogDebug($"Waiting for execution order...");
-				await _priorityManager.WaitForExecutionOrderAsync(_identity, _revision, GetPersistentItemsLifetime(_schedule.Period), stoppingToken).ConfigureAwait(false);
+				await _priorityManager.WaitForExecutionOrderAsync(_identity, _revision, stoppingToken).ConfigureAwait(false);
 
 				_logger.LogDebug("Waiting for lock...");
 				var acquiredLock = await _persistence.AcquireExecutionLockAsync(_identity, stoppingToken).ConfigureAwait(false);
@@ -138,7 +138,7 @@ internal class DistributedRecurrentWorkerService : IDistributedWorkerService
 			_logger.LogDebug($"[{worker}] Start");
 			await worker.ExecuteAsync(stoppingToken).ConfigureAwait(false);
 			_logger.LogDebug($"[{worker}] Success");
-			await _priorityManager.ResetExecutionResultAsync(_identity, stoppingToken).ConfigureAwait(false);
+			await _priorityManager.ResetExecutionResultAsync(_identity, false, stoppingToken).ConfigureAwait(false);
 			return true;
 		}
 		catch (Exception e)

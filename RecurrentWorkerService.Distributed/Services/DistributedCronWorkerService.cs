@@ -51,7 +51,7 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 		var retryLimit = DateTimeOffset.UtcNow;
 		var retryExecution = false;
 
-		await _priorityManager.ResetExecutionResultAsync(_identity, stoppingToken).ConfigureAwait(false);
+		await _priorityManager.ResetExecutionResultAsync(_identity, true, stoppingToken).ConfigureAwait(false);
 
 		while (!stoppingToken.IsCancellationRequested)
 		{
@@ -72,7 +72,7 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 				using var activity = _activitySource.StartActivity(ActivityKind.Internal, name: nameof(DistributedCronWorkerService), tags: _activitySourceTags);
 
 				_logger.LogDebug($"Waiting for execution order...");
-				await _priorityManager.WaitForExecutionOrderAsync(_identity, _revision, GetPersistentItemsLifetime(retryLimit), stoppingToken).ConfigureAwait(false);
+				await _priorityManager.WaitForExecutionOrderAsync(_identity, _revision, stoppingToken).ConfigureAwait(false);
 
 				_logger.LogDebug($"Waiting for lock for...");
 				var acquiredLock = await _persistence.AcquireExecutionLockAsync(_identity, stoppingToken).ConfigureAwait(false);
@@ -138,7 +138,7 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 			_logger.LogDebug($"[{worker}] Start");
 			await worker.ExecuteAsync(stoppingToken).ConfigureAwait(false);
 			_logger.LogDebug($"[{worker}] Success");
-			await _priorityManager.ResetExecutionResultAsync(_identity, stoppingToken).ConfigureAwait(false);
+			await _priorityManager.ResetExecutionResultAsync(_identity, false, stoppingToken).ConfigureAwait(false);
 
 			return true;
 		}

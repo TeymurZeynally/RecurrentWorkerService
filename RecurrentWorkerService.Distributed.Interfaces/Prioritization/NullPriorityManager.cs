@@ -2,12 +2,17 @@
 
 public class NullPriorityManager : IPriorityManager
 {
-	public Task WaitForExecutionOrderAsync(string identity, long revisionStart, TimeSpan lifetime, CancellationToken cancellationToken)
+	public Task WaitForExecutionOrderAsync(string identity, long revisionStart, CancellationToken cancellationToken)
 	{
 		return Task.CompletedTask;
 	}
 
-	public Task ResetExecutionResultAsync(string identity, CancellationToken cancellationToken)
+	public bool IsFirstInExecutionOrder(string identity, TimeSpan waitTime)
+	{
+		return true;
+	}
+
+	public Task ResetExecutionResultAsync(string identity, bool force, CancellationToken cancellationToken)
 	{
 		return Task.CompletedTask;
 	}

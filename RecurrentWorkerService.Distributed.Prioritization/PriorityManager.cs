@@ -20,13 +20,14 @@ internal class PriorityManager : IPriorityManager
 		_logger = logger;
 	}
 
-	public async Task WaitForExecutionOrderAsync(string identity, long revisionStart, TimeSpan lifetime, CancellationToken cancellationToken)
+	public async Task WaitForExecutionOrderAsync(string identity, long revisionStart, CancellationToken cancellationToken)
 	{
 		var order = _computedPriorityAggregator.GetNodeOrder(identity);
-
 		try
 		{
 			var cts = new CancellationTokenSource(_waitForLockTimeout);
+			cancellationToken.Register(cts.Cancel);
+
 			await _persistence.WaitForOrderAsync(order, identity, revisionStart, cts.Token).ConfigureAwait(false);
 		}
 		catch
@@ -35,9 +36,22 @@ internal class PriorityManager : IPriorityManager
 		}
 	}
 
-	public async Task ResetExecutionResultAsync(string identity, CancellationToken cancellationToken)
+	public bool IsFirstInExecutionOrder(string identity, TimeSpan waitTime)
 	{
-		await _priorityChangesAggregator.ResetPriorityAsync(identity, cancellationToken).ConfigureAwait(false);
+		if(waitTime > _waitForLockTimeout)
+		{
+			return true;
+		}
+
+		return _computedPriorityAggregator.GetNodeOrder(identity) == 0;
+	}
+
+	public async Task ResetExecutionResultAsync(string identity, bool force, CancellationToken cancellationToken)
+	{
+		if (force || _computedPriorityAggregator.GetNodeOrder(identity) > 0)
+		{
+			await _priorityChangesAggregator.ResetPriorityAsync(identity, cancellationToken).ConfigureAwait(false);
+		}
 	}
 
 	public async Task DecreaseExecutionPriorityAsync(string identity, CancellationToken cancellationToken)
