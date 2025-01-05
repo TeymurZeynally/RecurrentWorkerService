@@ -74,7 +74,7 @@ internal class DistributedCronWorkerService : IDistributedWorkerService
 				_logger.LogDebug($"Waiting for execution order...");
 				await _priorityManager.WaitForExecutionOrderAsync(_identity, _revision, stoppingToken).ConfigureAwait(false);
 
-				_logger.LogDebug($"Waiting for lock for...");
+				_logger.LogDebug($"Waiting for lock...");
 				var acquiredLock = await _persistence.AcquireExecutionLockAsync(_identity, stoppingToken).ConfigureAwait(false);
 				if (string.IsNullOrEmpty(acquiredLock)) continue;
 

@@ -78,9 +78,9 @@ public class DistributedWorkersRegistrationBuilder
 	}
 
 	public DistributedWorkersRegistrationBuilder AddDistributedRecurrentWorker<TWorker>(
-	string identity,
-	Action<RecurrentScheduleBuilder> scheduleBuilderAction,
-	Action<DistributedMultiiterationWorkerSettingsBuilder> multiiterationWorkerSettingsBuilderAction)
+		string identity,
+		Action<RecurrentScheduleBuilder> scheduleBuilderAction,
+		Action<DistributedMultiiterationWorkerSettingsBuilder> multiiterationWorkerSettingsBuilderAction)
 	where TWorker : class, IRecurrentWorker
 	{
 		var scheduleBuilder = new RecurrentScheduleBuilder(new RecurrentSchedule());
@@ -169,6 +169,56 @@ public class DistributedWorkersRegistrationBuilder
 		return this;
 	}
 
+
+	public DistributedWorkersRegistrationBuilder AddDistributedCronWorker<TWorker>(
+		string identity,
+		Action<CronScheduleBuilder> scheduleBuilderAction,
+		Action<DistributedMultiiterationWorkerSettingsBuilder> multiiterationWorkerSettingsBuilderAction)
+		where TWorker : class, ICronWorker
+	{
+		var scheduleBuilder = new CronScheduleBuilder(new CronSchedule());
+		scheduleBuilderAction(scheduleBuilder);
+
+		var multiiterationWorkerSettingsBuilder = new DistributedMultiiterationWorkerSettingsBuilder();
+		multiiterationWorkerSettingsBuilderAction(multiiterationWorkerSettingsBuilder);
+
+		_services.AddTransient<TWorker>();
+		_services.AddTransient<IDistributedWorkerService>(s => new DistributedCronMultipleIterationWorkerService(
+			s.GetRequiredService<ILogger<DistributedCronMultipleIterationWorkerService>>(),
+			s.GetRequiredService<TWorker>,
+			scheduleBuilder.Build(),
+			s.GetRequiredService<CronWorkerExecutionDateCalculator>(),
+			s.GetRequiredService<IPersistence>(),
+			s.GetRequiredService<IPriorityManager>(),
+			identity,
+			multiiterationWorkerSettingsBuilder.Build().MultiIterationOnNodeMaxDuration));
+		return this;
+	}
+
+	public DistributedWorkersRegistrationBuilder AddDistributedCronWorker(
+		string identity,
+		Func<IServiceProvider, ICronWorker> implementationFactory,
+		Action<CronScheduleBuilder> scheduleBuilderAction,
+		Action<DistributedMultiiterationWorkerSettingsBuilder> multiiterationWorkerSettingsBuilderAction)
+	{
+		var scheduleBuilder = new CronScheduleBuilder(new CronSchedule());
+		scheduleBuilderAction(scheduleBuilder);
+
+		var multiiterationWorkerSettingsBuilder = new DistributedMultiiterationWorkerSettingsBuilder();
+		multiiterationWorkerSettingsBuilderAction(multiiterationWorkerSettingsBuilder);
+
+		_services.AddTransient<IDistributedWorkerService>(s => new DistributedCronMultipleIterationWorkerService(
+			s.GetRequiredService<ILogger<DistributedCronMultipleIterationWorkerService>>(),
+			() => implementationFactory(s),
+			scheduleBuilder.Build(),
+			s.GetRequiredService<CronWorkerExecutionDateCalculator>(),
+			s.GetRequiredService<IPersistence>(),
+			s.GetRequiredService<IPriorityManager>(),
+			identity,
+			multiiterationWorkerSettingsBuilder.Build().MultiIterationOnNodeMaxDuration));
+		return this;
+	}
+
 	public DistributedWorkersRegistrationBuilder AddDistributedWorkloadWorker<TWorker>(
 		string identity,
 		Action<WorkloadScheduleBuilder> scheduleBuilderAction)
@@ -211,4 +261,54 @@ public class DistributedWorkersRegistrationBuilder
 			_activitySource));
 		return this;
 	}
+
+	public DistributedWorkersRegistrationBuilder AddDistributedWorkloadWorker<TWorker>(
+		string identity,
+		Action<WorkloadScheduleBuilder> scheduleBuilderAction,
+		Action<DistributedMultiiterationWorkerSettingsBuilder> multiiterationWorkerSettingsBuilderAction)
+		where TWorker : class, IWorkloadWorker
+	{
+		var scheduleBuilder = new WorkloadScheduleBuilder(new WorkloadSchedule());
+		scheduleBuilderAction(scheduleBuilder);
+
+		var multiiterationWorkerSettingsBuilder = new DistributedMultiiterationWorkerSettingsBuilder();
+		multiiterationWorkerSettingsBuilderAction(multiiterationWorkerSettingsBuilder);
+
+		_services.AddTransient<TWorker>();
+		_services.AddTransient<IDistributedWorkerService>(s => new DistributedWorkloadMultipleIterationWorkerService(
+			s.GetRequiredService<ILogger<DistributedWorkloadMultipleIterationWorkerService>>(),
+			s.GetRequiredService<TWorker>,
+			scheduleBuilder.Build(),
+			s.GetRequiredService<WorkloadWorkerExecutionDelayCalculator>(),
+			s.GetRequiredService<IPersistence>(),
+			s.GetRequiredService<IPriorityManager>(),
+			identity,
+			multiiterationWorkerSettingsBuilder.Build().MultiIterationOnNodeMaxDuration));
+		return this;
+	}
+
+	public DistributedWorkersRegistrationBuilder AddDistributedWorkloadWorker(
+		string identity,
+		Func<IServiceProvider, IWorkloadWorker> implementationFactory,
+		Action<WorkloadScheduleBuilder> scheduleBuilderAction,
+		Action<DistributedMultiiterationWorkerSettingsBuilder> multiiterationWorkerSettingsBuilderAction)
+	{
+		var scheduleBuilder = new WorkloadScheduleBuilder(new WorkloadSchedule());
+		scheduleBuilderAction(scheduleBuilder);
+
+		var multiiterationWorkerSettingsBuilder = new DistributedMultiiterationWorkerSettingsBuilder();
+		multiiterationWorkerSettingsBuilderAction(multiiterationWorkerSettingsBuilder);
+
+		_services.AddTransient<IDistributedWorkerService>(s => new DistributedWorkloadMultipleIterationWorkerService(
+			s.GetRequiredService<ILogger<DistributedWorkloadMultipleIterationWorkerService>>(),
+			() => implementationFactory(s),
+			scheduleBuilder.Build(),
+			s.GetRequiredService<WorkloadWorkerExecutionDelayCalculator>(),
+			s.GetRequiredService<IPersistence>(),
+			s.GetRequiredService<IPriorityManager>(),
+			identity,
+			multiiterationWorkerSettingsBuilder.Build().MultiIterationOnNodeMaxDuration));
+		return this;
+	}
+
 }
