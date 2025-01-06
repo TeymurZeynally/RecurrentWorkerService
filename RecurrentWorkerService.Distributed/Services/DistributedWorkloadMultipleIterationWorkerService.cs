@@ -80,13 +80,14 @@ internal class DistributedWorkloadMultipleIterationWorkerService : IDistributedW
 
 	private async Task ExecuteMultipleIterations(CancellationToken stoppingToken)
 	{
-		var startTimestamp = DateTimeOffset.UtcNow;
-
 		var workloadInfo = default(WorkloadInfo);
 		var delay = TimeSpan.Zero;
 		var workloadDelay = TimeSpan.Zero;
 
-		while (!stoppingToken.IsCancellationRequested && DateTimeOffset.UtcNow - startTimestamp <= _iterationsMaxDuration)
+		var startTimestamp = DateTimeOffset.UtcNow;
+		bool IsIterationsMaxDurationReached(DateTimeOffset date) => date - startTimestamp > _iterationsMaxDuration;
+
+		while (!stoppingToken.IsCancellationRequested && !IsIterationsMaxDurationReached(DateTimeOffset.UtcNow))
 		{
 			if (workloadInfo?.ExecutionDate != _priortyAcquireIdentityExecutionDateTime)
 			{
@@ -134,7 +135,7 @@ internal class DistributedWorkloadMultipleIterationWorkerService : IDistributedW
 				delay = _executionDelayCalculator.Calculate(_schedule, workloadInfo.LastDelay, workloadInfo.Workload, workloadInfo.IsError);
 				delay = TimeSpanExtensions.Max(delay - workloadInfo.Elapsed, TimeSpan.Zero);
 
-				if (delay >= TimeSpan.FromMilliseconds(1))
+				if (delay >= TimeSpan.FromMilliseconds(1) || IsIterationsMaxDurationReached(DateTimeOffset.UtcNow + delay))
 				{
 					_logger.LogDebug("Updating workload info...");
 					await _persistence.UpdateWorkloadAsync(_identity, workloadInfo, TimeSpan.FromDays(60), stoppingToken).ConfigureAwait(false);
